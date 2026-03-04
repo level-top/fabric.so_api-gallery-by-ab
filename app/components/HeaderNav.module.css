@@ -177,11 +177,9 @@
   height: 40px;
   width: 40px;
   pointer-events: none;
-  background: linear-gradient(
-    to right,
-    rgba(127, 127, 127, 0),
-    rgba(127, 127, 127, 0.18)
-  );
+  background: linear-gradient(to right,
+      rgba(127, 127, 127, 0),
+      rgba(127, 127, 127, 0.18));
 }
 
 .panelLabel {
@@ -202,7 +200,8 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   padding: 2px 34px 2px;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .panelChips::-webkit-scrollbar {
@@ -298,6 +297,10 @@
     height: auto;
     padding: 12px 12px;
     flex-wrap: wrap;
+  }
+
+  .nav {
+    margin-left: auto;
   }
 
   .search {

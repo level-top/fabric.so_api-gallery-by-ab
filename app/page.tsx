@@ -944,6 +944,7 @@ function HomeInner() {
 
                   <div className={styles.caption}>
                     <div className={styles.captionTop}>
+                      <div className={styles.meta}>{r.kind ?? "resource"}</div>
                       <FavoriteButton
                         resourceId={r.id}
                         className={`${styles.favoriteInline} ${styles.captionFav}`}
@@ -952,8 +953,6 @@ function HomeInner() {
                       />
 
                     </div>
-
-                    <div className={styles.meta}>{r.kind ?? "resource"}</div>
                   </div>
                 </div>
               </div>

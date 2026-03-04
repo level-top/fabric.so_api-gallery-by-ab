@@ -209,6 +209,15 @@ export default function HeaderNav() {
           </div>
         </Link>
 
+        <nav className={styles.nav} aria-label="Primary">
+          <Link
+            className={`${styles.navLink} ${premiumActive ? styles.navLinkActive : ""}`}
+            href="/premium"
+          >
+            Premium
+          </Link>
+        </nav>
+
         <div
           ref={searchWrapRef}
           className={styles.search}
@@ -325,16 +334,6 @@ export default function HeaderNav() {
             </div>
           ) : null}
         </div>
-
-        <nav className={styles.nav} aria-label="Primary">
-          <Link
-            className={`${styles.navLink} ${premiumActive ? styles.navLinkActive : ""}`}
-            href="/premium"
-          >
-            Premium
-          </Link>
-        </nav>
-
       </div>
     </header>
   );
