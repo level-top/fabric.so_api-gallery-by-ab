@@ -59,6 +59,7 @@
 
 .premiumPill {
     font-size: 12px;
+    font-weight: 700;
     padding: 6px 10px;
     border-radius: 999px;
     border: 1px solid rgba(127, 127, 127, 0.35);
@@ -75,6 +76,7 @@
     color: #25D366;
     cursor: pointer;
     font-size: 12px;
+    font-weight: 700;
     white-space: nowrap;
     display: inline-flex;
     align-items: center;

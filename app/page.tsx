@@ -940,24 +940,16 @@ function HomeInner() {
                       label=""
                       title="Share on WhatsApp"
                     />
-
-                    <FavoriteButton
-                      resourceId={r.id}
-                      className={styles.favoriteBadge}
-                      label=""
-                      title="Add to favourites"
-                    />
                   </div>
 
                   <div className={styles.caption}>
                     <div className={styles.captionTop}>
-                      <Link
-                        className={styles.mediaLink}
-                        href={`/resource/${r.id}`}
-                        title={r.name ?? "(untitled)"}
-                      >
-                        <div className={styles.name}>{r.name ?? "(untitled)"}</div>
-                      </Link>
+                      <FavoriteButton
+                        resourceId={r.id}
+                        className={`${styles.favoriteInline} ${styles.captionFav}`}
+                        label=""
+                        title="Add to favourites"
+                      />
 
                     </div>
 

@@ -408,6 +408,7 @@
   pointer-events: none;
   z-index: 2;
   font-size: 11px;
+  font-weight: 700;
   padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid rgba(127, 127, 127, 0.35);
@@ -452,6 +453,27 @@
 }
 
 .favoriteBadge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.captionFav {
+  margin-left: auto;
+}
+
+.favoriteInline {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.favoriteInline svg {
   width: 16px;
   height: 16px;
 }
@@ -526,6 +548,7 @@
   color: inherit;
   cursor: pointer;
   font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
 }
 

@@ -58,14 +58,14 @@ function buildWatermarkSvg(width: number, height: number, text: string): Buffer 
         )
         .join("");
 
-        const svg = `<?xml version="1.0" encoding="UTF-8"?>
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <g transform="rotate(-18 ${Math.round(width / 2)} ${Math.round(height / 2)})" xml:space="preserve">
         ${texts}
     </g>
 </svg>`;
 
-        return Buffer.from(svg, "utf8");
+    return Buffer.from(svg, "utf8");
 }
 
 async function maybeWatermarkImage(
