@@ -306,38 +306,9 @@ async function fetchFavoriteResource(id: string): Promise<Resource | null> {
   }
 }
 
-function pickCreatedAt(r: Resource): string | null {
-  const anyR = r as unknown as {
-    createdAt?: unknown;
-    created_at?: unknown;
-    data?: { createdAt?: unknown; created_at?: unknown };
-  };
-
-  const candidates = [
-    anyR.createdAt,
-    anyR.created_at,
-    anyR.data?.createdAt,
-    anyR.data?.created_at,
-  ];
-
-  for (const c of candidates) {
-    if (typeof c !== "string") continue;
-    const t = c.trim();
-    if (t) return t;
-  }
-
-  return null;
-}
-
 function isPremiumImage(r: Resource): boolean {
-  const kind = (r.kind ?? "").toLowerCase();
-  if (kind !== "image") return false;
-  const createdAt = pickCreatedAt(r);
-  if (!createdAt) return false;
-  const createdMs = Date.parse(createdAt);
-  if (Number.isNaN(createdMs)) return false;
-  const ageMs = Date.now() - createdMs;
-  return ageMs >= 0 && ageMs <= 48 * 60 * 60 * 1000;
+  // Premium badge is shown for image items.
+  return (r.kind ?? "").toLowerCase() === "image";
 }
 
 export default function Home() {

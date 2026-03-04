@@ -148,28 +148,7 @@ function firstString(...values: Array<unknown>): string | null {
 
 function isPremiumImage(resource: any): boolean {
   const kind = typeof resource?.kind === "string" ? resource.kind.toLowerCase() : "";
-  if (kind !== "image") return false;
-  const candidates = [
-    resource?.createdAt,
-    resource?.created_at,
-    resource?.data?.createdAt,
-    resource?.data?.created_at,
-  ];
-
-  let createdAt: string | null = null;
-  for (const c of candidates) {
-    if (typeof c !== "string") continue;
-    const t = c.trim();
-    if (t) {
-      createdAt = t;
-      break;
-    }
-  }
-  if (!createdAt) return false;
-  const createdMs = Date.parse(createdAt);
-  if (Number.isNaN(createdMs)) return false;
-  const ageMs = Date.now() - createdMs;
-  return ageMs >= 0 && ageMs <= 48 * 60 * 60 * 1000;
+  return kind === "image";
 }
 
 function pickKeywords(resource: any): string[] {
