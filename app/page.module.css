@@ -1,0 +1,557 @@
+.page {
+  min-height: 100svh;
+  padding: 24px;
+  font-family: var(--font-geist-sans);
+}
+
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.input {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.history {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.historyLabel {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.historyChips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Tags suggestion: exactly 2 rows, horizontal scroll for overflow. */
+.tagScroller {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+/* Right-edge fade hint when more tags exist to the right. */
+.tagScroller[data-can-scroll-right="1"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 40px;
+  pointer-events: none;
+  /* Neutral fade; keeps the same design language as existing rgba(127,127,127,*) usage. */
+  background: linear-gradient(to right,
+      rgba(127, 127, 127, 0),
+      rgba(127, 127, 127, 0.18));
+}
+
+.tagChips {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, max-content);
+  grid-auto-columns: max-content;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+
+  /* Give space so arrows don't overlap chips. */
+  padding-left: 34px;
+  padding-right: 34px;
+
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  /* Hide scrollbars but keep scrolling. */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.tagChipsOneRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(1, max-content);
+  grid-auto-columns: max-content;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+
+  /* Give space so arrows don't overlap chips. */
+  padding-left: 34px;
+  padding-right: 34px;
+
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  /* Hide scrollbars but keep scrolling. */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.tagChipsOneRow::-webkit-scrollbar {
+  display: none;
+}
+
+.tagChips::-webkit-scrollbar {
+  display: none;
+}
+
+.tagArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: rgba(127, 127, 127, 0.06);
+  color: inherit;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.tagArrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tagArrowLeft {
+  left: 0;
+}
+
+.tagArrowRight {
+  right: 0;
+}
+
+.tagArrowIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.historyChip {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyChip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.historyClear {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.historyClear:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.status {
+  margin: 12px 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.viewBar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 10px 0 4px;
+}
+
+@media (max-width: 600px) {
+  .viewBar {
+    justify-content: flex-start;
+  }
+}
+
+.viewButton {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.viewButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.viewButtonActive {
+  background: rgba(127, 127, 127, 0.12);
+}
+
+/* Pinterest-style masonry layout using CSS columns. */
+.grid {
+  column-count: 4;
+  column-gap: 12px;
+}
+
+.cardLink {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 12px;
+  break-inside: avoid;
+}
+
+.mediaLink {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+.card {
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(127, 127, 127, 0.06);
+}
+
+.media {
+  position: relative;
+}
+
+.watermark {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  pointer-events: none;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.watermarkTop {
+  left: 50%;
+  top: 8px;
+  bottom: auto;
+  transform: translateX(-50%);
+}
+
+.watermarkTL {
+  left: 8px;
+  top: 8px;
+  bottom: auto;
+  transform: none;
+}
+
+.watermarkTR {
+  left: auto;
+  right: 8px;
+  top: 8px;
+  bottom: auto;
+  transform: none;
+}
+
+.watermarkCenter {
+  left: 50%;
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  opacity: 0.32;
+}
+
+.watermarkML {
+  left: 8px;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  opacity: 0.55;
+}
+
+.watermarkMR {
+  left: auto;
+  right: 8px;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  opacity: 0.55;
+}
+
+.watermarkMB {
+  left: 50%;
+  bottom: 8px;
+  top: auto;
+  transform: translateX(-50%);
+  opacity: 0.55;
+}
+
+.watermarkBR {
+  left: auto;
+  right: 8px;
+}
+
+.playOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.playBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  background: rgba(127, 127, 127, 0.25);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.premiumBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  pointer-events: none;
+  z-index: 2;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  background: rgba(127, 127, 127, 0.25);
+}
+
+.whatsAppBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  background: rgba(127, 127, 127, 0.20);
+  color: #25D366;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.whatsAppBadge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.favoriteBadge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  background: rgba(127, 127, 127, 0.20);
+  color: inherit;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.favoriteBadge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.thumb {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  display: block;
+  background: rgba(127, 127, 127, 0.1);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.missing {
+  width: 100%;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+@media (max-width: 980px) {
+  .grid {
+    column-count: 3;
+  }
+}
+
+@media (max-width: 720px) {
+  .grid {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid {
+    column-count: 2;
+  }
+}
+
+.caption {
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.captionTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 13px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whatsAppButton {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.whatsAppButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.meta {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.loadMore {
+  margin: 14px 0 0;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 16px;
+  }
+}

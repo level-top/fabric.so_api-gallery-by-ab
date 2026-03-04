@@ -1,0 +1,105 @@
+import { NextResponse } from "next/server";
+
+import { FabricApiError, fabricFetch } from "@/lib/fabric";
+
+export const runtime = "nodejs";
+
+type ResourcesFilterRequest = {
+  tagId?: string;
+  cursor?: string;
+  limit?: number;
+  createdAfter?: string;
+  createdBefore?: string;
+};
+
+const FABRIC_UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function POST(request: Request) {
+  const body = (await request.json().catch(() => null)) as
+    | ResourcesFilterRequest
+    | null;
+
+  if (!body) {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const tagId = (body.tagId ?? "").trim();
+  const cursor = (body.cursor ?? "").trim();
+  const limit = Math.min(Math.max(body.limit ?? 20, 1), 50);
+  const createdAfter = (body.createdAfter ?? "").trim();
+  const createdBefore = (body.createdBefore ?? "").trim();
+
+  if (createdAfter && Number.isNaN(Date.parse(createdAfter))) {
+    return NextResponse.json(
+      { error: "createdAfter must be a valid date string (ISO or YYYY-MM-DD)." },
+      { status: 400 },
+    );
+  }
+
+  if (createdBefore && Number.isNaN(Date.parse(createdBefore))) {
+    return NextResponse.json(
+      { error: "createdBefore must be a valid date string (ISO or YYYY-MM-DD)." },
+      { status: 400 },
+    );
+  }
+
+  if (tagId && !FABRIC_UUID_REGEX.test(tagId)) {
+    return NextResponse.json(
+      {
+        error:
+          "tagId must be a Fabric tag ID (UUID). Tip: fetch it via GET /v2/tags and use data.tags[].id (not the tag name).",
+      },
+      { status: 400 },
+    );
+  }
+
+  // Keep the request intentionally light; some accounts time out when asking
+  // for descendants across large libraries.
+  const createFabricBody = (bodyLimit: number) => ({
+    kind: ["image", "video"],
+    ...(tagId ? { tagIds: [tagId] } : {}),
+    ...(createdAfter ? { createdAfter } : {}),
+    ...(createdBefore ? { createdBefore } : {}),
+    includeSubfolderCount: false,
+    limit: bodyLimit,
+    ...(cursor ? { cursor } : {}),
+    order: {
+      property: "createdAt",
+      direction: "DESC",
+    },
+  });
+
+  try {
+    const attempt = async (bodyLimit: number) =>
+      fabricFetch<unknown>("/v2/resources/filter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(createFabricBody(bodyLimit)),
+      });
+
+    let data: unknown;
+    try {
+      data = await attempt(limit);
+    } catch (error) {
+      if (error instanceof FabricApiError && error.status === 504) {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        data = await attempt(Math.min(limit, 10));
+      } else {
+        throw error;
+      }
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    if (error instanceof FabricApiError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
+}

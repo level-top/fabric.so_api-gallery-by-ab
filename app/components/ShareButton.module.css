@@ -1,0 +1,44 @@
+.wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    min-width: 180px;
+    padding: 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(127, 127, 127, 0.25);
+    background: rgba(20, 20, 20, 0.92);
+    backdrop-filter: blur(8px);
+}
+
+.item {
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.item:hover {
+    background: rgba(127, 127, 127, 0.10);
+}
+
+.item:focus-visible {
+    outline: 2px solid rgba(127, 127, 127, 0.35);
+    outline-offset: 2px;
+}
+
+.sep {
+    height: 1px;
+    background: rgba(127, 127, 127, 0.25);
+    margin: 6px 4px;
+}

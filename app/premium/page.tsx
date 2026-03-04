@@ -1,0 +1,218 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+
+import styles from "../page.module.css";
+
+type Resource = {
+  id: string;
+  name?: string | null;
+  kind?: string | null;
+  createdAt?: string | null;
+  created_at?: string | null;
+  thumbnail?: {
+    sm?: string | null;
+    md?: string | null;
+    lg?: string | null;
+    xl?: string | null;
+    original?: string | null;
+  } | null;
+  cover?: { url?: string | null } | null;
+};
+
+type ResourcesFilterResponse = {
+  resources?: Resource[];
+  hasMore?: boolean;
+  nextCursor?: string | null;
+  error?: string;
+};
+
+function pickThumb(r: Resource): string | null {
+  return (
+    r.thumbnail?.lg ??
+    r.thumbnail?.md ??
+    r.thumbnail?.sm ??
+    r.cover?.url ??
+    r.thumbnail?.original ??
+    null
+  );
+}
+
+function pickCreatedAt(r: Resource): string | null {
+  const anyR = r as unknown as {
+    createdAt?: unknown;
+    created_at?: unknown;
+    data?: { createdAt?: unknown; created_at?: unknown };
+  };
+
+  const candidates = [
+    anyR.createdAt,
+    anyR.created_at,
+    anyR.data?.createdAt,
+    anyR.data?.created_at,
+  ];
+
+  for (const c of candidates) {
+    if (typeof c !== "string") continue;
+    const t = c.trim();
+    if (t) return t;
+  }
+
+  return null;
+}
+
+function isPremiumImage(r: Resource): boolean {
+  const kind = (r.kind ?? "").toLowerCase();
+  if (kind !== "image") return false;
+  const createdAt = pickCreatedAt(r);
+  if (!createdAt) return false;
+  const createdMs = Date.parse(createdAt);
+  if (Number.isNaN(createdMs)) return false;
+  const ageMs = Date.now() - createdMs;
+  return ageMs >= 0 && ageMs <= 48 * 60 * 60 * 1000;
+}
+
+export default function PremiumPage() {
+  const [items, setItems] = useState<Resource[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [status, setStatus] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const createdAfter = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
+  const loadFirst = useCallback(async () => {
+    setLoading(true);
+    setStatus("Loading last 48 hours...");
+
+    try {
+      const resp = await fetch("/api/fabric/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ limit: 30, createdAfter }),
+      });
+
+      const data = (await resp.json()) as ResourcesFilterResponse;
+      if (!resp.ok) throw new Error(data.error ?? "Request failed");
+
+      setItems(data.resources ?? []);
+      const c = (data.nextCursor ?? "").trim();
+      setNextCursor(c ? c : null);
+      setHasMore(Boolean(data.hasMore));
+      setStatus(`Loaded ${data.resources?.length ?? 0} item(s).`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, [createdAfter]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || !nextCursor || loading) return;
+
+    setLoading(true);
+    setStatus("Loading more...");
+
+    try {
+      const resp = await fetch("/api/fabric/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ limit: 30, cursor: nextCursor, createdAfter }),
+      });
+
+      const data = (await resp.json()) as ResourcesFilterResponse;
+      if (!resp.ok) throw new Error(data.error ?? "Request failed");
+
+      setItems((prev) => [...prev, ...(data.resources ?? [])]);
+      const c = (data.nextCursor ?? "").trim();
+      setNextCursor(c ? c : null);
+      setHasMore(Boolean(data.hasMore));
+      setStatus(`Loaded ${data.resources?.length ?? 0} more item(s).`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, [createdAfter, hasMore, loading, nextCursor]);
+
+  useEffect(() => {
+    void loadFirst();
+  }, [loadFirst]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+        if (loading) return;
+        if (hasMore && nextCursor) void loadMore();
+      },
+      { root: null, rootMargin: "1200px", threshold: 0 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore, loading, nextCursor]);
+
+  const premiumImages = items.filter((r) => (r.kind ?? "").toLowerCase() === "image");
+
+  return (
+    <div className={styles.page}>
+      <main className={styles.main}>
+        <h1 className={styles.title}>Premium</h1>
+
+        {status ? <p className={styles.status}>{status}</p> : null}
+
+        <div className={styles.grid}>
+          {premiumImages.map((r) => {
+            const src = pickThumb(r);
+            const isPremium = isPremiumImage(r);
+            return (
+              <Link key={r.id} className={styles.cardLink} href={`/resource/${r.id}`}>
+                <div className={styles.card}>
+                  <div className={styles.media}>
+                    {src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        className={styles.thumb}
+                        src={src}
+                        alt={r.name ?? r.id}
+                        loading="lazy"
+                        draggable={false}
+                        onContextMenu={(e) => e.preventDefault()}
+                        onDragStart={(e) => e.preventDefault()}
+                      />
+                    ) : (
+                      <div className={styles.missing}>No preview</div>
+                    )}
+
+                    {isPremium ? (
+                      <div className={styles.premiumBadge} aria-hidden="true">
+                        Premium
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.caption}>
+                    <div className={styles.name} title={r.name ?? "(untitled)"}>
+                      {r.name ?? "(untitled)"}
+                    </div>
+                    <div className={styles.meta}>{r.kind ?? "resource"}</div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div ref={sentinelRef} />
+      </main>
+    </div>
+  );
+}
