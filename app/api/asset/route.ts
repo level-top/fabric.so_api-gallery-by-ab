@@ -36,32 +36,36 @@ function buildWatermarkSvg(width: number, height: number, text: string): Buffer 
     const xs = [0.18, 0.5, 0.82].map((n) => Math.round(width * n));
     const ys = [0.2, 0.5, 0.8].map((n) => Math.round(height * n));
 
+    const textAttrs = [
+        `font-family="Arial, Helvetica, sans-serif"`,
+        `font-size="${size}"`,
+        `font-weight="600"`,
+        `text-anchor="middle"`,
+        `dominant-baseline="middle"`,
+        `letter-spacing="0.4"`,
+        `fill="#ffffff"`,
+        `fill-opacity="0.18"`,
+        `stroke="#000000"`,
+        `stroke-opacity="0.20"`,
+        `stroke-width="${strokeWidth}"`,
+    ].join(" ");
+
     const texts = ys
-        .map((y) => xs.map((x) => `<text x="${x}" y="${y}">${safeText}</text>`).join(""))
+        .map((y) =>
+            xs
+                .map((x) => `<text ${textAttrs} x="${x}" y="${y}">${safeText}</text>`)
+                .join(""),
+        )
         .join("");
 
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <style>
-    text {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      font-size: ${size}px;
-      font-weight: 600;
-      fill: rgba(255,255,255,0.18);
-      stroke: rgba(0,0,0,0.20);
-      stroke-width: ${strokeWidth};
-      paint-order: stroke fill;
-      text-anchor: middle;
-      dominant-baseline: middle;
-      letter-spacing: 0.4px;
-    }
-  </style>
-  <g transform="rotate(-18 ${Math.round(width / 2)} ${Math.round(height / 2)})">
-    ${texts}
-  </g>
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <g transform="rotate(-18 ${Math.round(width / 2)} ${Math.round(height / 2)})" xml:space="preserve">
+        ${texts}
+    </g>
 </svg>`;
 
-    return Buffer.from(svg);
+        return Buffer.from(svg, "utf8");
 }
 
 async function maybeWatermarkImage(
