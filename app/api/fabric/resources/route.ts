@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { FabricApiError, fabricFetch } from "@/lib/fabric";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const CACHE_TTL_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
