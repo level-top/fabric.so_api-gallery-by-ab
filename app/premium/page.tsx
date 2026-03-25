@@ -136,7 +136,6 @@ export default function PremiumPage() {
         <div className={styles.grid}>
           {premiumImages.map((r) => {
             const src = pickThumb(r);
-            const isPremium = (r.kind ?? "").toLowerCase() === "image";
             return (
               <Link key={r.id} className={styles.cardLink} href={`/resource/${r.id}`}>
                 <div className={styles.card}>
@@ -155,12 +154,6 @@ export default function PremiumPage() {
                     ) : (
                       <div className={styles.missing}>No preview</div>
                     )}
-
-                    {isPremium ? (
-                      <div className={styles.premiumBadge} aria-hidden="true">
-                        Premium
-                      </div>
-                    ) : null}
                   </div>
 
                   <div className={styles.caption}>

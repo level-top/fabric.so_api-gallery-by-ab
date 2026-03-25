@@ -19,9 +19,15 @@ export const metadata: Metadata = {
   title: "AB Designer",
   description: "Client gallery powered by Fabric API",
   icons: {
-    icon: [{ url: "/logo.jpeg", type: "image/jpeg" }],
-    shortcut: ["/logo.jpeg"],
-    apple: [{ url: "/logo.jpeg", type: "image/jpeg" }],
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/android-chrome-192x192.png", type: "image/png", sizes: "192x192" },
+      { url: "/android-chrome-512x512.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
   },
 };
 

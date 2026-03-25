@@ -5,7 +5,6 @@ import Link from "next/link";
 
 import sharedStyles from "../../page.module.css";
 import styles from "./resource.module.css";
-import { WhatsAppShareButton } from "@/app/components/WhatsAppShareButton";
 import { FavoriteButton } from "@/app/components/FavoriteButton";
 
 type Props = {
@@ -47,9 +46,7 @@ export function SimilarItems({ resourceId, pageSize = 24 }: Props) {
                         cache: "no-store",
                         body: JSON.stringify({
                             resourceId,
-                            mode: "similar-image",
                             pageSize,
-                            preferUpload: true,
                         }),
                     },
                 );
@@ -114,20 +111,9 @@ export function SimilarItems({ resourceId, pageSize = 24 }: Props) {
                                                 <div className={sharedStyles.missing}>No preview</div>
                                             )}
 
-                                            <div className={sharedStyles.watermark} aria-hidden="true">AB Designer</div>
-                                            <div className={`${sharedStyles.watermark} ${sharedStyles.watermarkTL}`} aria-hidden="true">AB Designer</div>
-                                            <div className={`${sharedStyles.watermark} ${sharedStyles.watermarkTR}`} aria-hidden="true">AB Designer</div>
-                                            <div className={`${sharedStyles.watermark} ${sharedStyles.watermarkBR}`} aria-hidden="true">AB Designer</div>
-                                            <div className={`${sharedStyles.watermark} ${sharedStyles.watermarkCenter}`} aria-hidden="true">AB Designer</div>
-
-                                            <WhatsAppShareButton
-                                                resourceId={r.id}
-                                                name={r?.name}
-                                                thumbnailUrl={src}
-                                                className={sharedStyles.whatsAppBadge}
-                                                label=""
-                                                title="Share on WhatsApp"
-                                            />
+                                            <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
+                                            <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
+                                            <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
 
                                             <FavoriteButton
                                                 resourceId={r.id}
@@ -139,15 +125,7 @@ export function SimilarItems({ resourceId, pageSize = 24 }: Props) {
                                     </Link>
 
                                     <div className={sharedStyles.caption}>
-                                        <div className={sharedStyles.captionTop}>
-                                            <Link
-                                                className={sharedStyles.mediaLink}
-                                                href={`/resource/${r.id}`}
-                                                title={r?.name ?? "(untitled)"}
-                                            >
-                                                <div className={sharedStyles.name}>{r?.name ?? "(untitled)"}</div>
-                                            </Link>
-                                        </div>
+                                        <div className={sharedStyles.captionTop} />
                                         <div className={sharedStyles.meta}>{r?.kind ?? "resource"}</div>
                                     </div>
                                 </div>

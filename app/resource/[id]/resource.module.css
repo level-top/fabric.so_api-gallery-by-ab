@@ -154,6 +154,32 @@
     position: relative;
 }
 
+.centerWatermark {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    pointer-events: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    opacity: 0.32;
+    white-space: nowrap;
+}
+
+.centerWatermarkTop {
+    top: 10px;
+}
+
+.centerWatermarkMiddle {
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.centerWatermarkBottom {
+    bottom: 10px;
+}
+
 .videoWrap {
     width: 100%;
     position: relative;
@@ -276,7 +302,7 @@
 
 .similarGrid {
     column-count: 4;
-    column-gap: 12px;
+    column-gap: 8px;
 }
 
 @media (max-width: 980px) {
@@ -312,6 +338,89 @@
     background: rgba(127, 127, 127, 0.06);
 }
 
+.infoClamp {
+    display: grid;
+    gap: 10px;
+}
+
+.infoClampInput {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.infoClampContent {
+    position: relative;
+    max-height: 320px;
+    overflow: hidden;
+    display: grid;
+    gap: 10px;
+}
+
+.infoHiddenUntilExpanded {
+    display: block;
+}
+
+.infoClampInput:not(:checked)~.infoClampContent .infoHiddenUntilExpanded {
+    display: none;
+}
+
+.infoClampInput:checked~.infoClampContent {
+    max-height: none;
+    overflow: visible;
+}
+
+.infoClampInput:not(:checked)~.infoClampContent::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 54px;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+            rgba(127, 127, 127, 0),
+            rgba(127, 127, 127, 0.12));
+}
+
+.infoClampToggle {
+    justify-self: start;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(127, 127, 127, 0.35);
+    background: rgba(127, 127, 127, 0.06);
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.infoClampMore {
+    display: inline;
+}
+
+.infoClampLess {
+    display: none;
+}
+
+.infoClampInput:checked~.infoClampToggle .infoClampMore {
+    display: none;
+}
+
+.infoClampInput:checked~.infoClampToggle .infoClampLess {
+    display: inline;
+}
+
 @media (max-width: 600px) {
     .main {
         gap: 14px;
@@ -327,6 +436,10 @@
 
     .card {
         padding: 12px;
+    }
+
+    .infoClampContent {
+        max-height: 260px;
     }
 }
 

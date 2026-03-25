@@ -205,7 +205,7 @@ export default function HeaderNav() {
           <img className={styles.logo} src="/logo.jpeg" alt="" aria-hidden="true" />
           <div>
             <div className={styles.title}>AB Designer</div>
-            <div className={styles.subtitle}>Browse resources via Fabric API</div>
+            <div className={styles.subtitle}>BY DNL</div>
           </div>
         </Link>
 

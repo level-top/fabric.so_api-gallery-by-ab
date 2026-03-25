@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 
 import { FabricApiError, fabricFetch } from "@/lib/fabric";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
+
+const CACHE_TTL_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 15_000;
+
+type CacheEntry = { ts: number; data: unknown };
+const responseCache = new Map<string, CacheEntry>();
+const inflight = new Map<string, Promise<unknown>>();
 
 type ResourcesFilterRequest = {
   tagId?: string;
@@ -70,30 +77,65 @@ export async function POST(request: Request) {
     },
   });
 
+  const cacheKey = JSON.stringify({ tagId, cursor, limit, createdAfter, createdBefore });
+  const now = Date.now();
+  const cached = responseCache.get(cacheKey);
+  if (cached && now - cached.ts < CACHE_TTL_MS) {
+    return NextResponse.json(cached.data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
+  }
+
   try {
-    const attempt = async (bodyLimit: number) =>
-      fabricFetch<unknown>("/v2/resources/filter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(createFabricBody(bodyLimit)),
-      });
+    const existing = inflight.get(cacheKey);
+    const work =
+      existing ??
+      (async () => {
+        const attempt = async (bodyLimit: number, timeoutMs: number) => {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), timeoutMs);
+          try {
+            return await fabricFetch<unknown>("/v2/resources/filter", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(createFabricBody(bodyLimit)),
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(t);
+          }
+        };
 
-    let data: unknown;
-    try {
-      data = await attempt(limit);
-    } catch (error) {
-      if (error instanceof FabricApiError && error.status === 504) {
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        data = await attempt(Math.min(limit, 10));
-      } else {
-        throw error;
-      }
-    }
+        try {
+          return await attempt(limit, REQUEST_TIMEOUT_MS);
+        } catch (error) {
+          const aborted = error instanceof Error && error.name === "AbortError";
+          const gatewayTimeout = error instanceof FabricApiError && error.status === 504;
+          if (aborted || gatewayTimeout) {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            return await attempt(Math.min(limit, 10), REQUEST_TIMEOUT_MS);
+          }
+          throw error;
+        }
+      })();
 
-    return NextResponse.json(data);
+    if (!existing) inflight.set(cacheKey, work);
+
+    const data = await work;
+    responseCache.set(cacheKey, { ts: Date.now(), data });
+    inflight.delete(cacheKey);
+
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
+    inflight.delete(cacheKey);
     if (error instanceof FabricApiError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }

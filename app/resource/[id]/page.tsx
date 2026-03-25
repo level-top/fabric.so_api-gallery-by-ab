@@ -303,6 +303,8 @@ export default async function ResourceDetailPage({ params }: PageProps) {
         ? `${dimensions.width} × ${dimensions.height}`
         : null;
 
+    const infoToggleId = `info-toggle-${id}`;
+
     const isPremium = isPremiumImage(resource);
 
     return (
@@ -310,31 +312,9 @@ export default async function ResourceDetailPage({ params }: PageProps) {
         <main className={`${sharedStyles.main} ${styles.main}`}>
           <div className={styles.layout}>
             <div className={styles.mediaCard}>
-              <div className={styles.watermark} aria-hidden="true">AB Designer</div>
-              <div className={`${styles.watermark} ${styles.watermarkTL}`} aria-hidden="true">
-                AB Designer
-              </div>
-              <div className={`${styles.watermark} ${styles.watermarkTop}`} aria-hidden="true">
-                AB Designer
-              </div>
-              <div className={`${styles.watermark} ${styles.watermarkTR}`} aria-hidden="true">
-                AB Designer
-              </div>
-              <div className={`${styles.watermark} ${styles.watermarkML}`} aria-hidden="true">
-                AB Designer
-              </div>
-              <div className={`${styles.watermark} ${styles.watermarkBR}`} aria-hidden="true">
-                AB Designer
-              </div>
-              <div className={`${styles.watermark} ${styles.watermarkMR}`} aria-hidden="true">
-                AB Designer
-              </div>
-              <div className={`${styles.watermark} ${styles.watermarkMB}`} aria-hidden="true">
-                AB Designer
-              </div>
-              <div className={`${styles.watermark} ${styles.watermarkCenter}`} aria-hidden="true">
-                AB Designer
-              </div>
+              <div className={`${styles.centerWatermark} ${styles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
+              <div className={`${styles.centerWatermark} ${styles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
+              <div className={`${styles.centerWatermark} ${styles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
               {videoUrl ? (
                 <video
                   className={styles.media}
@@ -419,68 +399,83 @@ export default async function ResourceDetailPage({ params }: PageProps) {
                   ) : null}
                 </div>
 
-                {caption ? (
-                  <div className={styles.field}>
-                    <div className={styles.fieldLabel}>Caption</div>
-                    <div>{caption}</div>
-                  </div>
-                ) : null}
+                <div className={styles.infoClamp}>
+                  <input
+                    id={infoToggleId}
+                    className={styles.infoClampInput}
+                    type="checkbox"
+                  />
 
-                {keywords.length ? (
-                  <div className={styles.field}>
-                    <div className={styles.fieldLabel}>Keywords</div>
-                    <div className={styles.chips}>
-                      {keywords.slice(0, 30).map((k) => (
-                        <Link
-                          key={k}
-                          className={`${styles.chip} ${styles.chipLink}`}
-                          href={`/?q=${encodeURIComponent(k)}`}
-                          title={`Search: ${k}`}
-                        >
-                          {k}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                  <div className={styles.infoClampContent}>
+                    {caption ? (
+                      <div className={`${styles.field} ${styles.infoHiddenUntilExpanded}`}>
+                        <div className={styles.fieldLabel}>Caption</div>
+                        <div>{caption}</div>
+                      </div>
+                    ) : null}
 
-                {dominantColors.length ? (
-                  <div className={styles.field}>
-                    <div className={styles.fieldLabel}>Dominant colors</div>
-                    <div className={styles.colorRow}>
-                      {dominantColors.slice(0, 12).map((c, idx) => {
-                        const css = colorToCss(c);
-                        const q = (css ?? colorLabel(c)).trim();
-                        const content = (
-                          <>
-                            <div
-                              className={styles.colorSwatch}
-                              aria-hidden="true"
-                              style={{ background: css ?? undefined }}
-                            />
-                            <div className={styles.colorText}>{colorLabel(c)}</div>
-                          </>
-                        );
-                        return (
-                          <Link
-                            key={`${String(c)}-${idx}`}
-                            className={`${styles.colorItem} ${styles.colorItemLink}`}
-                            href={`/?q=${encodeURIComponent(q)}`}
-                            title={`Search: ${q}`}
-                          >
-                            {content}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
+                    {keywords.length ? (
+                      <div className={`${styles.field} ${styles.infoHiddenUntilExpanded}`}>
+                        <div className={styles.fieldLabel}>Keywords</div>
+                        <div className={styles.chips}>
+                          {keywords.slice(0, 30).map((k) => (
+                            <Link
+                              key={k}
+                              className={`${styles.chip} ${styles.chipLink}`}
+                              href={`/?q=${encodeURIComponent(k)}`}
+                              title={`Search: ${k}`}
+                            >
+                              {k}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
 
-                {!caption && !keywords.length && !dominantColors.length && !dimsText ? (
-                  <div className={styles.note}>
-                    No extra metadata fields found (caption/keywords/colors).
+                    {dominantColors.length ? (
+                      <div className={`${styles.field} ${styles.infoHiddenUntilExpanded}`}>
+                        <div className={styles.fieldLabel}>Dominant colors</div>
+                        <div className={styles.colorRow}>
+                          {dominantColors.slice(0, 12).map((c, idx) => {
+                            const css = colorToCss(c);
+                            const q = (css ?? colorLabel(c)).trim();
+                            const content = (
+                              <>
+                                <div
+                                  className={styles.colorSwatch}
+                                  aria-hidden="true"
+                                  style={{ background: css ?? undefined }}
+                                />
+                                <div className={styles.colorText}>{colorLabel(c)}</div>
+                              </>
+                            );
+                            return (
+                              <Link
+                                key={`${String(c)}-${idx}`}
+                                className={`${styles.colorItem} ${styles.colorItemLink}`}
+                                href={`/?q=${encodeURIComponent(q)}`}
+                                title={`Search: ${q}`}
+                              >
+                                {content}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!caption && !keywords.length && !dominantColors.length && !dimsText ? (
+                      <div className={styles.note}>
+                        No extra metadata fields found (caption/keywords/colors).
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
+
+                  <label className={styles.infoClampToggle} htmlFor={infoToggleId}>
+                    <span className={styles.infoClampMore}>Show all</span>
+                    <span className={styles.infoClampLess}>Show less</span>
+                  </label>
+                </div>
               </div>
             </aside>
           </div>

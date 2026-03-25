@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./page.module.css";
 import { SEED_FILENAME_TAGS } from "@/lib/seedFilenameTags";
-import { WhatsAppShareButton } from "./components/WhatsAppShareButton";
 import { FavoriteButton } from "./components/FavoriteButton";
 
 type HomeCache = {
@@ -30,6 +29,8 @@ const SEARCH_HISTORY_KEY = "fabric-gallery:search-history:v1";
 const SEARCH_HISTORY_LIMIT = 10;
 const FAVORITES_KEY = "fabric-gallery:favorites:v1";
 const FAVORITES_EVENT = "fabric-gallery:favorites-changed";
+
+const LIST_PAGE_LIMIT = 12;
 
 const NAME_TAGS_KEY = "fabric-gallery:name-tags:v1";
 const NAME_TAGS_LIMIT = 40;
@@ -68,14 +69,6 @@ function saveSearchHistory(history: string[]) {
       SEARCH_HISTORY_KEY,
       JSON.stringify(history.slice(0, SEARCH_HISTORY_LIMIT)),
     );
-  } catch {
-    // ignore
-  }
-}
-
-function clearSearchHistory() {
-  try {
-    localStorage.removeItem(SEARCH_HISTORY_KEY);
   } catch {
     // ignore
   }
@@ -306,11 +299,6 @@ async function fetchFavoriteResource(id: string): Promise<Resource | null> {
   }
 }
 
-function isPremiumImage(r: Resource): boolean {
-  // Premium badge is shown for image items.
-  return (r.kind ?? "").toLowerCase() === "image";
-}
-
 export default function Home() {
   return (
     <Suspense fallback={null}>
@@ -327,6 +315,8 @@ function HomeInner() {
     const q = searchParams.get("q");
     return typeof q === "string" ? q.trim() : "";
   }, [searchParams]);
+
+  const showHero = useMemo(() => queryQ.trim().length === 0, [queryQ]);
 
   const initialCache = HOME_CACHE;
   const restoredRef = useRef<boolean>(Boolean(initialCache));
@@ -349,8 +339,6 @@ function HomeInner() {
   const [favoriteItems, setFavoriteItems] = useState<Resource[]>([]);
   const [favoriteStatus, setFavoriteStatus] = useState<string>("");
   const favoriteRequestRef = useRef(0);
-
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [nameTags, setNameTags] = useState<Record<string, number>>({});
   const processedIdsRef = useRef<Set<string>>(new Set());
 
@@ -373,7 +361,6 @@ function HomeInner() {
   const canLoad = true;
 
   useEffect(() => {
-    setSearchHistory(loadSearchHistory());
     // Load persisted filename-tags and prune ignored tokens like RAW.
     const loaded = loadNameTags();
     let changed = false;
@@ -574,14 +561,12 @@ function HomeInner() {
         );
 
         // Store search history.
-        setSearchHistory((prev) => {
-          const next = [term, ...prev.filter((t) => t.toLowerCase() !== term.toLowerCase())].slice(
-            0,
-            SEARCH_HISTORY_LIMIT,
-          );
-          saveSearchHistory(next);
-          return next;
-        });
+        const prev = loadSearchHistory();
+        const next = [term, ...prev.filter((t) => t.toLowerCase() !== term.toLowerCase())].slice(
+          0,
+          SEARCH_HISTORY_LIMIT,
+        );
+        saveSearchHistory(next);
       } catch (e) {
         setStatus(e instanceof Error ? e.message : "Unknown error");
       } finally {
@@ -608,7 +593,7 @@ function HomeInner() {
       const response = await fetch("/api/fabric/resources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ limit: 30 }),
+        body: JSON.stringify({ limit: LIST_PAGE_LIMIT }),
       });
 
       const data = (await response.json()) as ResourcesFilterResponse & {
@@ -641,7 +626,7 @@ function HomeInner() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          limit: 30,
+          limit: LIST_PAGE_LIMIT,
           cursor: nextCursor,
         }),
       });
@@ -814,40 +799,62 @@ function HomeInner() {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        {searchHistory.length || visibleNameTags.length ? (
-          <div className={styles.controls}>
-            {searchHistory.length ? (
-              <div className={styles.history}>
-                <div className={styles.historyHeader}>
-                  <div className={styles.historyLabel}>Recent searches</div>
-                  <button
-                    type="button"
-                    className={styles.historyClear}
-                    onClick={() => {
-                      clearSearchHistory();
-                      setSearchHistory([]);
-                    }}
-                    disabled={loading}
-                  >
-                    Clear
-                  </button>
-                </div>
-                <TagScroller
-                  tags={searchHistory}
-                  rows={1}
-                  disabled={loading}
-                  onTagClick={(term) => {
-                    router.push(`/?q=${encodeURIComponent(term)}`);
-                  }}
-                />
+        {showHero && !favoritesOnly ? (
+          <section className={styles.hero} aria-label="How to use">
+            <div className={styles.heroInner}>
+              <div className={styles.heroCopy}>
+                <div className={styles.heroKicker}>AB Designer</div>
+                <h1 className={styles.heroTitle}>Find your designs fast</h1>
+                <p className={styles.heroText}>
+                  Search by keyword, use tags from filenames, or pick a color — then save what you like to favourites.
+                </p>
               </div>
-            ) : null}
 
+              <div className={styles.heroSteps}>
+                <div className={styles.heroStepCard}>
+                  <div className={styles.heroStepHead}>
+                    <span className={styles.heroStepNum}>1</span>
+                    <div className={styles.heroStepTitle}>Search</div>
+                  </div>
+                  <div className={styles.heroStepText}>Type a keyword in the top bar.</div>
+                </div>
+
+                <div className={styles.heroStepCard}>
+                  <div className={styles.heroStepHead}>
+                    <span className={styles.heroStepNum}>2</span>
+                    <div className={styles.heroStepTitle}>Tags</div>
+                  </div>
+                  <div className={styles.heroStepText}>Tap a filename tag to search instantly.</div>
+                </div>
+
+                <div className={styles.heroStepCard}>
+                  <div className={styles.heroStepHead}>
+                    <span className={styles.heroStepNum}>3</span>
+                    <div className={styles.heroStepTitle}>Color</div>
+                  </div>
+                  <div className={styles.heroStepText}>Use the color picker to search by color.</div>
+                </div>
+
+                <div className={styles.heroStepCard}>
+                  <div className={styles.heroStepHead}>
+                    <span className={styles.heroStepNum}>4</span>
+                    <div className={styles.heroStepTitle}>Favourites</div>
+                  </div>
+                  <div className={styles.heroStepText}>Hit the heart to save, then browse Favourites.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {visibleNameTags.length ? (
+          <div className={styles.controls}>
             {visibleNameTags.length ? (
               <div className={styles.history}>
                 <div className={styles.historyLabel}>Tags from filenames</div>
                 <TagScroller
                   tags={visibleNameTags}
+                  rows={1}
                   disabled={loading}
                   onTagClick={(tag) => {
                     router.push(`/?q=${encodeURIComponent(tag)}`);
@@ -891,7 +898,6 @@ function HomeInner() {
           {displayedItems.map((r) => {
             const src = pickThumb(r);
             const isVideo = (r.kind ?? "").toLowerCase() === "video";
-            const isPremium = isPremiumImage(r);
             return (
               <div key={r.id} className={styles.cardLink}>
                 <div className={styles.card}>
@@ -914,32 +920,15 @@ function HomeInner() {
                       )}
                     </Link>
 
-                    <div className={styles.watermark} aria-hidden="true">AB Designer</div>
-                    <div className={`${styles.watermark} ${styles.watermarkTL}`} aria-hidden="true">AB Designer</div>
-                    <div className={`${styles.watermark} ${styles.watermarkTR}`} aria-hidden="true">AB Designer</div>
-                    <div className={`${styles.watermark} ${styles.watermarkBR}`} aria-hidden="true">AB Designer</div>
-                    <div className={`${styles.watermark} ${styles.watermarkCenter}`} aria-hidden="true">AB Designer</div>
+                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
+                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
+                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
 
                     {isVideo ? (
                       <div className={styles.playOverlay} aria-hidden="true">
                         <div className={styles.playBadge}>▶</div>
                       </div>
                     ) : null}
-
-                    {isPremium ? (
-                      <div className={styles.premiumBadge} aria-hidden="true">
-                        Premium
-                      </div>
-                    ) : null}
-
-                    <WhatsAppShareButton
-                      resourceId={r.id}
-                      name={r.name}
-                      thumbnailUrl={src}
-                      className={styles.whatsAppBadge}
-                      label=""
-                      title="Share on WhatsApp"
-                    />
                   </div>
 
                   <div className={styles.caption}>
