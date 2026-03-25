@@ -28,6 +28,19 @@ type ResourcesFilterResponse = {
   error?: string;
 };
 
+async function readJsonResponse<T>(resp: Response): Promise<T> {
+  const contentType = (resp.headers.get("content-type") ?? "").toLowerCase();
+  if (contentType.includes("application/json")) {
+    return (await resp.json()) as T;
+  }
+  const text = await resp.text().catch(() => "");
+  const preview = text.trim().slice(0, 220);
+  throw new Error(
+    `Non-JSON response (${resp.status} ${resp.statusText}). ` +
+    (preview ? `Body: ${preview}` : "Empty body"),
+  );
+}
+
 function pickThumb(r: Resource): string | null {
   return (
     r.thumbnail?.lg ??
@@ -59,7 +72,7 @@ export default function PremiumPage() {
         body: JSON.stringify({ limit: 30 }),
       });
 
-      const data = (await resp.json()) as ResourcesFilterResponse;
+      const data = await readJsonResponse<ResourcesFilterResponse>(resp);
       if (!resp.ok) throw new Error(data.error ?? "Request failed");
 
       setItems(data.resources ?? []);
@@ -87,7 +100,7 @@ export default function PremiumPage() {
         body: JSON.stringify({ limit: 30, cursor: nextCursor }),
       });
 
-      const data = (await resp.json()) as ResourcesFilterResponse;
+      const data = await readJsonResponse<ResourcesFilterResponse>(resp);
       if (!resp.ok) throw new Error(data.error ?? "Request failed");
 
       setItems((prev) => [...prev, ...(data.resources ?? [])]);

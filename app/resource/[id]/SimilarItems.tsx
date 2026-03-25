@@ -12,6 +12,19 @@ type Props = {
     pageSize?: number;
 };
 
+async function readJsonResponse<T>(resp: Response): Promise<T> {
+    const contentType = (resp.headers.get("content-type") ?? "").toLowerCase();
+    if (contentType.includes("application/json")) {
+        return (await resp.json()) as T;
+    }
+    const text = await resp.text().catch(() => "");
+    const preview = text.trim().slice(0, 220);
+    throw new Error(
+        `Non-JSON response (${resp.status} ${resp.statusText}). ` +
+        (preview ? `Body: ${preview}` : "Empty body"),
+    );
+}
+
 function pickThumb(resource: any): string | null {
     return (
         resource?.thumbnail?.lg ??
@@ -56,7 +69,7 @@ export function SimilarItems({ resourceId, pageSize = 24 }: Props) {
                     throw new Error(`Similar items error ${resp.status}: ${text || resp.statusText}`);
                 }
 
-                const data = (await resp.json().catch(() => ({}))) as any;
+                const data = await readJsonResponse<any>(resp).catch(() => ({}));
                 const hits = Array.isArray(data?.hits) ? data.hits : [];
                 const w = typeof data?.warning === "string" ? data.warning : null;
 

@@ -35,6 +35,19 @@ const LIST_PAGE_LIMIT = 12;
 const NAME_TAGS_KEY = "fabric-gallery:name-tags:v1";
 const NAME_TAGS_LIMIT = 40;
 
+async function readJsonResponse<T>(resp: Response): Promise<T> {
+  const contentType = (resp.headers.get("content-type") ?? "").toLowerCase();
+  if (contentType.includes("application/json")) {
+    return (await resp.json()) as T;
+  }
+  const text = await resp.text().catch(() => "");
+  const preview = text.trim().slice(0, 220);
+  throw new Error(
+    `Non-JSON response (${resp.status} ${resp.statusText}). ` +
+    (preview ? `Body: ${preview}` : "Empty body"),
+  );
+}
+
 function normalizeHistoryTerm(value: string): string {
   return value.trim().replace(/\s+/g, " ").slice(0, 255);
 }
@@ -538,7 +551,7 @@ function HomeInner() {
           }),
         });
 
-        const data = (await response.json()) as SearchResponse & { error?: string };
+        const data = await readJsonResponse<SearchResponse & { error?: string }>(response);
         if (!response.ok) throw new Error(data.error ?? "Request failed");
 
         const hits = (data.hits ?? []).filter(
@@ -596,9 +609,9 @@ function HomeInner() {
         body: JSON.stringify({ limit: LIST_PAGE_LIMIT }),
       });
 
-      const data = (await response.json()) as ResourcesFilterResponse & {
+      const data = await readJsonResponse<ResourcesFilterResponse & {
         error?: string;
-      };
+      }>(response);
       if (!response.ok) throw new Error(data.error ?? "Request failed");
 
       setItems(data.resources ?? []);
@@ -631,9 +644,9 @@ function HomeInner() {
         }),
       });
 
-      const data = (await response.json()) as ResourcesFilterResponse & {
+      const data = await readJsonResponse<ResourcesFilterResponse & {
         error?: string;
-      };
+      }>(response);
       if (!response.ok) throw new Error(data.error ?? "Request failed");
 
       setItems((prev) => [...prev, ...(data.resources ?? [])]);
@@ -679,7 +692,7 @@ function HomeInner() {
         }),
       });
 
-      const data = (await response.json()) as SearchResponse & { error?: string };
+      const data = await readJsonResponse<SearchResponse & { error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Request failed");
 
       const hits = (data.hits ?? []).filter(
