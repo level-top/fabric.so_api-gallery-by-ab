@@ -822,40 +822,6 @@ function HomeInner() {
                   Search by keyword, use tags from filenames, or pick a color — then save what you like to favourites.
                 </p>
               </div>
-
-              <div className={styles.heroSteps}>
-                <div className={styles.heroStepCard}>
-                  <div className={styles.heroStepHead}>
-                    <span className={styles.heroStepNum}>1</span>
-                    <div className={styles.heroStepTitle}>Search</div>
-                  </div>
-                  <div className={styles.heroStepText}>Type a keyword in the top bar.</div>
-                </div>
-
-                <div className={styles.heroStepCard}>
-                  <div className={styles.heroStepHead}>
-                    <span className={styles.heroStepNum}>2</span>
-                    <div className={styles.heroStepTitle}>Tags</div>
-                  </div>
-                  <div className={styles.heroStepText}>Tap a filename tag to search instantly.</div>
-                </div>
-
-                <div className={styles.heroStepCard}>
-                  <div className={styles.heroStepHead}>
-                    <span className={styles.heroStepNum}>3</span>
-                    <div className={styles.heroStepTitle}>Color</div>
-                  </div>
-                  <div className={styles.heroStepText}>Use the color picker to search by color.</div>
-                </div>
-
-                <div className={styles.heroStepCard}>
-                  <div className={styles.heroStepHead}>
-                    <span className={styles.heroStepNum}>4</span>
-                    <div className={styles.heroStepTitle}>Favourites</div>
-                  </div>
-                  <div className={styles.heroStepText}>Hit the heart to save, then browse Favourites.</div>
-                </div>
-              </div>
             </div>
           </section>
         ) : null}

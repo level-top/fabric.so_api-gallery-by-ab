@@ -51,16 +51,8 @@
 
 .heroInner {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: 16px;
-  align-items: center;
-}
-
-@media (max-width: 860px) {
-  .heroInner {
-    grid-template-columns: 1fr;
-  }
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 .heroCopy {
@@ -87,68 +79,6 @@
   font-size: 14px;
   line-height: 1.5;
   opacity: 0.85;
-}
-
-.heroSteps {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-@media (max-width: 600px) {
-  .heroSteps {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-.heroStepCard {
-  border: 1px solid rgba(127, 127, 127, 0.22);
-  border-radius: 12px;
-  background:
-    linear-gradient(135deg, rgba(127, 127, 127, 0.14), rgba(127, 127, 127, 0.07));
-  padding: 10px 10px;
-  min-width: 0;
-
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
-}
-
-.heroStepCard:hover {
-  transform: translateY(-2px);
-  background:
-    linear-gradient(135deg, rgba(127, 127, 127, 0.18), rgba(127, 127, 127, 0.10));
-  border-color: rgba(127, 127, 127, 0.30);
-}
-
-.heroStepHead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.heroStepTitle {
-  font-size: 13px;
-  font-weight: 650;
-  letter-spacing: 0.2px;
-}
-
-.heroStepText {
-  font-size: 12px;
-  opacity: 0.85;
-  line-height: 1.35;
-}
-
-.heroStepNum {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  background: rgba(127, 127, 127, 0.06);
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  flex: 0 0 auto;
 }
 
 @keyframes heroIn {
@@ -201,13 +131,6 @@
     animation: none;
   }
 
-  .heroStepCard {
-    transition: none;
-  }
-
-  .heroStepCard:hover {
-    transform: none;
-  }
 }
 
 .title {
