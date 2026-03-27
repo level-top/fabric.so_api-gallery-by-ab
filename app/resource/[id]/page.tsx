@@ -258,6 +258,16 @@ function colorLabel(v: unknown): string {
   return String(v);
 }
 
+function buildWatermarkedInlineProxyUrl(url: string, filename?: string | null): string {
+  const params = new URLSearchParams();
+  params.set("url", url);
+  params.set("inline", "1");
+  // Keep this in sync with the Download button's watermark version.
+  params.set("wm", "2");
+  if (filename && filename.trim()) params.set("filename", filename.trim());
+  return `/api/asset?${params.toString()}`;
+}
+
 export default async function ResourceDetailPage({ params }: PageProps) {
   const { id } = await params;
 
@@ -325,7 +335,11 @@ export default async function ResourceDetailPage({ params }: PageProps) {
                   <source src={videoUrl} />
                 </video>
               ) : imageUrl ? (
-                <NoSaveImage className={styles.media} src={imageUrl} alt={title} />
+                <NoSaveImage
+                  className={styles.media}
+                  src={buildWatermarkedInlineProxyUrl(imageUrl, title)}
+                  alt={title}
+                />
               ) : (
                 <div className={sharedStyles.missing}>No preview</div>
               )}

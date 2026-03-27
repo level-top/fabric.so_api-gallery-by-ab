@@ -4,7 +4,10 @@ export const runtime = "nodejs";
 
 function wantsWatermark(searchParams: URLSearchParams): boolean {
     const v = (searchParams.get("wm") ?? "").trim().toLowerCase();
-    return v === "1" || v === "true" || v === "yes";
+    if (!v) return false;
+    if (v === "true" || v === "yes") return true;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0;
 }
 
 function wantsInline(searchParams: URLSearchParams): boolean {

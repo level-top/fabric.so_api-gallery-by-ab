@@ -92,7 +92,8 @@ function DownloadIcon() {
 function buildProxyUrl(url: string, filename?: string | null): string {
     const params = new URLSearchParams();
     params.set("url", url);
-    params.set("wm", "1");
+    // `wm` is versioned to help bust CDN/browser caches after watermark tweaks.
+    params.set("wm", "2");
     if (filename && filename.trim()) params.set("filename", filename.trim());
     return `/api/asset?${params.toString()}`;
 }
