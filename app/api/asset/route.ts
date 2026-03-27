@@ -24,21 +24,165 @@ function sharpFormatFromContentType(contentType: string): "jpeg" | "png" | "webp
     return null;
 }
 
+type Segment = readonly [number, number, number, number];
+
+function glyphSegments(ch: string): { segments: Segment[]; advance: number } {
+    // Simple monoline uppercase glyphs in a 10(w) x 14(h) box.
+    // Rendered with strokes so we don't depend on server fonts.
+    const c = ch.toUpperCase();
+    const adv = 12; // 10 width + 2 spacing
+    const s: Segment[] = [];
+
+    // Common coordinates
+    const top = 1;
+    const mid = 7;
+    const bot = 13;
+    const left = 1;
+    const right = 9;
+
+    // Helper shorthands
+    const seg = (x1: number, y1: number, x2: number, y2: number) => s.push([x1, y1, x2, y2] as const);
+
+    switch (c) {
+        case "A":
+            seg(left, bot, 5, top);
+            seg(5, top, right, bot);
+            seg(3, mid, 7, mid);
+            break;
+        case "B":
+            seg(left, top, left, bot);
+            seg(left, top, 7, top);
+            seg(7, top, 8, 3);
+            seg(8, 3, 7, mid);
+            seg(left, mid, 7, mid);
+            seg(7, mid, 8, 11);
+            seg(8, 11, 7, bot);
+            seg(left, bot, 7, bot);
+            break;
+        case "D":
+            seg(left, top, left, bot);
+            seg(left, top, 7, 2);
+            seg(7, 2, 8, 4);
+            seg(8, 4, 8, 10);
+            seg(8, 10, 7, 12);
+            seg(7, 12, left, bot);
+            break;
+        case "E":
+            seg(left, top, left, bot);
+            seg(left, top, right, top);
+            seg(left, mid, 7, mid);
+            seg(left, bot, right, bot);
+            break;
+        case "G":
+            seg(8, 4, 7, 2);
+            seg(7, 2, 3, 2);
+            seg(3, 2, 2, 4);
+            seg(2, 4, 2, 10);
+            seg(2, 10, 3, 12);
+            seg(3, 12, 7, 12);
+            seg(7, 12, 8, 10);
+            seg(8, 8, 6, 8);
+            break;
+        case "I":
+            seg(5, top, 5, bot);
+            seg(3, top, 7, top);
+            seg(3, bot, 7, bot);
+            break;
+        case "N":
+            seg(left, bot, left, top);
+            seg(left, top, right, bot);
+            seg(right, bot, right, top);
+            break;
+        case "R":
+            seg(left, top, left, bot);
+            seg(left, top, 7, top);
+            seg(7, top, 8, 4);
+            seg(8, 4, 7, mid);
+            seg(left, mid, 7, mid);
+            seg(6, mid, right, bot);
+            break;
+        case "S":
+            seg(8, 3, 7, 2);
+            seg(7, 2, 3, 2);
+            seg(3, 2, 2, 4);
+            seg(2, 4, 8, 9);
+            seg(8, 9, 7, 12);
+            seg(7, 12, 3, 12);
+            seg(3, 12, 2, 11);
+            break;
+        case " ":
+            return { segments: [], advance: 8 };
+        default:
+            // Unknown char: draw a small dash.
+            seg(3, mid, 7, mid);
+            break;
+    }
+
+    return { segments: s, advance: adv };
+}
+
+function buildVectorTextPaths(lines: string[]): { width: number; height: number; paths: string } {
+    const lineHeight = 14;
+    const lineGap = 7;
+
+    const layouts = lines.map((line) => {
+        let x = 0;
+        const parts: string[] = [];
+        for (const ch of line) {
+            const { segments, advance } = glyphSegments(ch);
+            for (const [x1, y1, x2, y2] of segments) {
+                parts.push(`M ${x + x1} ${y1} L ${x + x2} ${y2}`);
+            }
+            x += advance;
+        }
+        return { d: parts.join(" "), width: x ? x - 2 : 0 };
+    });
+
+    const width = Math.max(0, ...layouts.map((l) => l.width));
+    const height = lines.length * lineHeight + (lines.length - 1) * lineGap;
+
+    const paths = layouts
+        .map((l, idx) => {
+            if (!l.d) return "";
+            const yOff = idx * (lineHeight + lineGap);
+            const xOff = Math.round((width - l.width) / 2);
+            return `<path d="${l.d}" transform="translate(${xOff} ${yOff})"/>`;
+        })
+        .join("\n");
+
+    return { width, height, paths };
+}
+
 function buildWatermarkSvg(width: number, height: number): Buffer {
     // NOTE: Avoid <text> in SVG: on Vercel/serverless the font stack can be missing,
     // resulting in the watermark rendering as small "□" boxes. Use a font-free vector mark.
     const minDim = Math.min(width, height);
-    // Keep it subtle: scale with image size, but clamp to avoid huge "badge" looking marks.
-    const size = Math.round(Math.max(56, Math.min(220, minDim * 0.14)));
-    const x = Math.round(width / 2 - size / 2);
-    const y = Math.round(height / 2 - size / 2);
-    const scale = size / 64;
+    // Target width of the whole watermark block; clamped to remain subtle.
+    const targetBlockWidth = Math.round(Math.max(160, Math.min(420, minDim * 0.30)));
+    const { width: blockW, height: blockH, paths } = buildVectorTextPaths(["AB", "DESIGNER"]);
+
+    // Scale the vector glyphs to the desired on-image size.
+    const scale = blockW > 0 ? targetBlockWidth / blockW : 1;
+    const scaledW = blockW * scale;
+    const scaledH = blockH * scale;
+    const cx = Math.round(width / 2);
+    const cy = Math.round(height / 2);
+
+    const rot = -18;
+    const x = Math.round(cx - scaledW / 2);
+    const y = Math.round(cy - scaledH / 2);
 
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <g transform="translate(${x} ${y}) rotate(-18 ${Math.round(size / 2)} ${Math.round(size / 2)}) scale(${scale})">
-        <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="#FFFFFF" fill-opacity="0.14"/>
-        <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="none" stroke="#000000" stroke-opacity="0.14" stroke-width="2.2"/>
+  <g transform="translate(${x} ${y}) rotate(${rot} ${Math.round(scaledW / 2)} ${Math.round(scaledH / 2)}) scale(${scale})">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke="#000000" stroke-opacity="0.14" stroke-width="3.6">
+        ${paths}
+      </g>
+      <g stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="2.8">
+        ${paths}
+      </g>
+    </g>
   </g>
 </svg>`;
 

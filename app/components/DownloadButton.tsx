@@ -93,7 +93,7 @@ function buildProxyUrl(url: string, filename?: string | null): string {
     const params = new URLSearchParams();
     params.set("url", url);
     // `wm` is versioned to help bust CDN/browser caches after watermark tweaks.
-    params.set("wm", "5");
+    params.set("wm", "6");
     if (filename && filename.trim()) params.set("filename", filename.trim());
     return `/api/asset?${params.toString()}`;
 }
