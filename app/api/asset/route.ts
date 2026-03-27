@@ -24,50 +24,21 @@ function sharpFormatFromContentType(contentType: string): "jpeg" | "png" | "webp
     return null;
 }
 
-function buildWatermarkSvg(width: number, height: number, text: string): Buffer {
-    const safeText = text.replace(/[&<>"']/g, (c) => {
-        if (c === "&") return "&amp;";
-        if (c === "<") return "&lt;";
-        if (c === ">") return "&gt;";
-        if (c === '"') return "&quot;";
-        return "&#39;";
-    });
-
-    // Slightly larger + higher opacity so it remains visible on bright assets.
-    const size = Math.max(18, Math.round(Math.min(width, height) / 14));
-    const strokeWidth = Math.max(1, Math.round(size / 16));
-
-    // Single centered stamp for the cleanest watermark.
-    const xs = [0.5].map((n) => Math.round(width * n));
-    const ys = [0.5].map((n) => Math.round(height * n));
-
-    const textAttrs = [
-        `font-family="Arial, Helvetica, sans-serif"`,
-        `font-size="${size}"`,
-        `font-weight="600"`,
-        `text-anchor="middle"`,
-        `dominant-baseline="middle"`,
-        `letter-spacing="0.4"`,
-        `fill="#ffffff"`,
-        `fill-opacity="0.26"`,
-        `stroke="#000000"`,
-        `stroke-opacity="0.32"`,
-        `stroke-width="${strokeWidth}"`,
-    ].join(" ");
-
-    const texts = ys
-        .map((y) =>
-            xs
-                .map((x) => `<text ${textAttrs} x="${x}" y="${y}">${safeText}</text>`)
-                .join(""),
-        )
-        .join("");
+function buildWatermarkSvg(width: number, height: number): Buffer {
+    // NOTE: Avoid <text> in SVG: on Vercel/serverless the font stack can be missing,
+    // resulting in the watermark rendering as small "□" boxes. Use a font-free vector mark.
+    const size = Math.max(52, Math.round(Math.min(width, height) * 0.22));
+    const x = Math.round(width / 2 - size / 2);
+    const y = Math.round(height / 2 - size / 2);
+    const scale = size / 64;
 
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    <g transform="rotate(-18 ${Math.round(width / 2)} ${Math.round(height / 2)})" xml:space="preserve">
-        ${texts}
-    </g>
+  <g transform="translate(${x} ${y}) rotate(-18 ${Math.round(size / 2)} ${Math.round(size / 2)}) scale(${scale})">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#000000" fill-opacity="0.14"/>
+    <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="#FFFFFF" fill-opacity="0.26"/>
+    <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="none" stroke="#000000" stroke-opacity="0.18" stroke-width="2"/>
+  </g>
 </svg>`;
 
     return Buffer.from(svg, "utf8");
@@ -95,7 +66,7 @@ async function maybeWatermarkImage(
         const height = meta.height;
         if (!width || !height) return { body, applied: false, error: "no-dimensions" };
 
-        const svg = buildWatermarkSvg(width, height, "AB Designer");
+        const svg = buildWatermarkSvg(width, height);
         const piped = img.composite([{ input: svg, top: 0, left: 0 }]);
         const out = await (outFormat === "jpeg"
             ? piped.jpeg({ quality: 92, mozjpeg: true })

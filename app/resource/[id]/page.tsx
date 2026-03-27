@@ -263,7 +263,7 @@ function buildWatermarkedInlineProxyUrl(url: string, filename?: string | null): 
   params.set("url", url);
   params.set("inline", "1");
   // Keep this in sync with the Download button's watermark version.
-  params.set("wm", "3");
+  params.set("wm", "4");
   if (filename && filename.trim()) params.set("filename", filename.trim());
   return `/api/asset?${params.toString()}`;
 }
