@@ -379,22 +379,10 @@ export default async function ResourceDetailPage({ params }: PageProps) {
                       <span className={styles.metaValue}>{kind}</span>
                     </span>
                   ) : null}
-                  {dimsText ? (
-                    <span className={styles.metaItem}>
-                      <span className={styles.metaKey}>Size</span>
-                      <span className={styles.metaValue}>{dimsText}</span>
-                    </span>
-                  ) : null}
                   {createdDate ? (
                     <span className={styles.metaItem}>
                       <span className={styles.metaKey}>Created</span>
                       <span className={styles.metaValue}>{createdDate}</span>
-                    </span>
-                  ) : null}
-                  {resource?.id ? (
-                    <span className={styles.metaItem}>
-                      <span className={styles.metaKey}>ID</span>
-                      <span className={styles.metaValue}>{String(resource.id)}</span>
                     </span>
                   ) : null}
                 </div>

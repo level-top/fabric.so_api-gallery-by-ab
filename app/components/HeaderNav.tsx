@@ -11,6 +11,28 @@ const SEARCH_HISTORY_KEY = "fabric-gallery:search-history:v1";
 const SEARCH_HISTORY_LIMIT = 10;
 const SUGGESTION_LIMIT = 30;
 
+const FAVORITES_KEY = "fabric-gallery:favorites:v1";
+const FAVORITES_EVENT = "fabric-gallery:favorites-changed";
+
+function loadFavoritesCount(): number {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return 0;
+    const seen = new Set<string>();
+    for (const v of parsed) {
+      if (typeof v !== "string") continue;
+      const id = v.trim();
+      if (!id) continue;
+      seen.add(id);
+    }
+    return seen.size;
+  } catch {
+    return 0;
+  }
+}
+
 function loadSearchHistory(): string[] {
   try {
     const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
@@ -94,10 +116,30 @@ export default function HeaderNav() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [favoritesCount, setFavoritesCount] = useState<number>(0);
 
   useEffect(() => {
     setQuery(urlQuery);
   }, [urlQuery]);
+
+  useEffect(() => {
+    const refresh = () => setFavoritesCount(loadFavoritesCount());
+    refresh();
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== FAVORITES_KEY) return;
+      refresh();
+    };
+
+    const onCustom = () => refresh();
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(FAVORITES_EVENT, onCustom as EventListener);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(FAVORITES_EVENT, onCustom as EventListener);
+    };
+  }, []);
 
   const seedSuggestions = useMemo(() => {
     const q = normalizeQuery(query).toLowerCase();
@@ -196,6 +238,16 @@ export default function HeaderNav() {
   }
 
   const premiumActive = pathname === "/premium";
+  const favouritesActive = pathname === "/" && (searchParams.get("view") ?? "") === "favourites";
+
+  const favouritesHref = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", "favourites");
+    // Avoid mixing favourites-only view with search/list query params.
+    params.delete("q");
+    const qs = params.toString();
+    return qs ? `/?${qs}` : "/";
+  }, [searchParams]);
 
   return (
     <header className={styles.header}>
@@ -215,6 +267,14 @@ export default function HeaderNav() {
             href="/premium"
           >
             Premium
+          </Link>
+
+          <Link
+            className={`${styles.navLink} ${favouritesActive ? styles.navLinkActive : ""}`}
+            href={favouritesHref}
+            title={favoritesCount ? `Favourites (${favoritesCount})` : "Favourites"}
+          >
+            Favourites{favoritesCount ? ` (${favoritesCount})` : ""}
           </Link>
         </nav>
 

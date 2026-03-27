@@ -324,6 +324,16 @@ function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const viewParam = useMemo(() => {
+    const v = searchParams.get("view");
+    return typeof v === "string" ? v.trim() : "";
+  }, [searchParams]);
+
+  const wantsFavoritesView = useMemo(() => {
+    const v = viewParam.toLowerCase();
+    return v === "favourites" || v === "favorites";
+  }, [viewParam]);
+
   const queryQ = useMemo(() => {
     const q = searchParams.get("q");
     return typeof q === "string" ? q.trim() : "";
@@ -347,7 +357,7 @@ function HomeInner() {
   const [mode, setMode] = useState<"list" | "search">(() => initialCache?.mode ?? "list");
   const [loading, setLoading] = useState(false);
 
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(() => wantsFavoritesView);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [favoriteItems, setFavoriteItems] = useState<Resource[]>([]);
   const [favoriteStatus, setFavoriteStatus] = useState<string>("");
@@ -442,6 +452,11 @@ function HomeInner() {
       window.removeEventListener(FAVORITES_EVENT, onCustom as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    setFavoritesOnly(wantsFavoritesView);
+    if (!wantsFavoritesView) setFavoriteStatus("");
+  }, [wantsFavoritesView]);
 
   useEffect(() => {
     if (!favoritesOnly) return;
@@ -592,10 +607,11 @@ function HomeInner() {
   useEffect(() => {
     const q = queryQ.trim();
     if (!q) return;
+    if (favoritesOnly) return;
     if (q.toLowerCase() === activeSearchText.trim().toLowerCase()) return;
     setSearchText(q);
     void searchWithTerm(q);
-  }, [activeSearchText, queryQ, searchWithTerm]);
+  }, [activeSearchText, favoritesOnly, queryQ, searchWithTerm]);
 
   const loadFirstPage = useCallback(async () => {
     setMode("list");
@@ -668,8 +684,9 @@ function HomeInner() {
   useEffect(() => {
     // When leaving search mode (i.e. URL `?q` cleared), return to the default list.
     if (queryQ.trim()) return;
+    if (favoritesOnly) return;
     if (mode !== "list") void loadFirstPage();
-  }, [loadFirstPage, mode, queryQ]);
+  }, [favoritesOnly, loadFirstPage, mode, queryQ]);
 
   const loadMoreSearch = useCallback(async () => {
     const totalMoreAvailable =
@@ -736,8 +753,9 @@ function HomeInner() {
   useEffect(() => {
     // Auto-load images on initial page open, unless restored from in-memory history.
     if (restoredRef.current) return;
+    if (favoritesOnly) return;
     void loadFirstPage();
-  }, [loadFirstPage]);
+  }, [favoritesOnly, loadFirstPage]);
 
   useEffect(() => {
     latestStateRef.current = {
@@ -789,6 +807,7 @@ function HomeInner() {
         const first = entries[0];
         if (!first?.isIntersecting) return;
         if (loading) return;
+        if (favoritesOnly) return;
 
         if (mode === "list") {
           if (listHasMore && nextCursor) void loadMore();
@@ -807,7 +826,7 @@ function HomeInner() {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [items.length, listHasMore, loadMore, loadMoreSearch, loading, mode, nextCursor, searchHasMore, searchTotal]);
+  }, [favoritesOnly, items.length, listHasMore, loadMore, loadMoreSearch, loading, mode, nextCursor, searchHasMore, searchTotal]);
 
   return (
     <div className={styles.page}>
@@ -843,29 +862,6 @@ function HomeInner() {
             ) : null}
           </div>
         ) : null}
-
-        <div className={styles.viewBar}>
-          <button
-            type="button"
-            className={`${styles.viewButton} ${!favoritesOnly ? styles.viewButtonActive : ""}`}
-            onClick={() => {
-              setFavoritesOnly(false);
-              setFavoriteStatus("");
-            }}
-            disabled={loading}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            className={`${styles.viewButton} ${favoritesOnly ? styles.viewButtonActive : ""}`}
-            onClick={() => setFavoritesOnly(true)}
-            disabled={loading}
-            title={favoriteIds.length ? `Favourites (${favoriteIds.length})` : "Favourites"}
-          >
-            Favourites{favoriteIds.length ? ` (${favoriteIds.length})` : ""}
-          </button>
-        </div>
 
         {favoritesOnly ? (
           favoriteStatus ? <p className={styles.status}>{favoriteStatus}</p> : null

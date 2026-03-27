@@ -365,40 +365,6 @@
   opacity: 0.85;
 }
 
-.viewBar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-end;
-  margin: 10px 0 4px;
-}
-
-@media (max-width: 600px) {
-  .viewBar {
-    justify-content: flex-start;
-  }
-}
-
-.viewButton {
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.viewButton:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.viewButtonActive {
-  background: rgba(127, 127, 127, 0.12);
-}
-
 /* Pinterest-style masonry layout using CSS columns. */
 .grid {
   column-count: 4;

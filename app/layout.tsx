@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AB Designer",
-  description: "Client gallery powered by Fabric API",
+  description: "Client gallery powered by DNL",
   icons: {
     icon: [
       { url: "/favicon.ico" },

@@ -30,8 +30,9 @@ function buildWatermarkSvg(width: number, height: number, text: string): Buffer 
         return "&#39;";
     });
 
-    const size = Math.max(18, Math.round(Math.min(width, height) / 18));
-    const strokeWidth = Math.max(1, Math.round(size / 14));
+    // Slightly larger + higher opacity so it remains visible on bright assets.
+    const size = Math.max(18, Math.round(Math.min(width, height) / 14));
+    const strokeWidth = Math.max(1, Math.round(size / 16));
 
     const xs = [0.18, 0.5, 0.82].map((n) => Math.round(width * n));
     const ys = [0.2, 0.5, 0.8].map((n) => Math.round(height * n));
@@ -44,9 +45,9 @@ function buildWatermarkSvg(width: number, height: number, text: string): Buffer 
         `dominant-baseline="middle"`,
         `letter-spacing="0.4"`,
         `fill="#ffffff"`,
-        `fill-opacity="0.18"`,
+        `fill-opacity="0.26"`,
         `stroke="#000000"`,
-        `stroke-opacity="0.20"`,
+        `stroke-opacity="0.32"`,
         `stroke-width="${strokeWidth}"`,
     ].join(" ");
 
@@ -91,9 +92,14 @@ async function maybeWatermarkImage(
         if (!width || !height) return body;
 
         const svg = buildWatermarkSvg(width, height, "AB Designer");
-        const out = await img
-            .composite([{ input: svg, top: 0, left: 0 }])
-            .toFormat(outFormat)
+        const piped = img.composite([{ input: svg, top: 0, left: 0 }]);
+        const out = await (outFormat === "jpeg"
+            ? piped.jpeg({ quality: 92, mozjpeg: true })
+            : outFormat === "webp"
+                ? piped.webp({ quality: 90 })
+                : outFormat === "avif"
+                    ? piped.avif({ quality: 70 })
+                    : piped.png())
             .toBuffer();
 
         return Uint8Array.from(out).buffer;
