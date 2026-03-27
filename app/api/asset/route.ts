@@ -37,8 +37,9 @@ function buildWatermarkSvg(width: number, height: number, text: string): Buffer 
     const size = Math.max(18, Math.round(Math.min(width, height) / 14));
     const strokeWidth = Math.max(1, Math.round(size / 16));
 
-    const xs = [0.18, 0.5, 0.82].map((n) => Math.round(width * n));
-    const ys = [0.2, 0.5, 0.8].map((n) => Math.round(height * n));
+    // Single centered stamp for the cleanest watermark.
+    const xs = [0.5].map((n) => Math.round(width * n));
+    const ys = [0.5].map((n) => Math.round(height * n));
 
     const textAttrs = [
         `font-family="Arial, Helvetica, sans-serif"`,
@@ -76,15 +77,15 @@ async function maybeWatermarkImage(
     body: ArrayBuffer,
     contentType: string,
     enabled: boolean,
-): Promise<ArrayBuffer> {
-    if (!enabled) return body;
+): Promise<{ body: ArrayBuffer; applied: boolean; error?: string }> {
+    if (!enabled) return { body, applied: false };
 
     const ct = contentType.toLowerCase().split(";")[0].trim();
-    if (!ct.startsWith("image/")) return body;
-    if (ct === "image/gif" || ct === "image/svg+xml") return body;
+    if (!ct.startsWith("image/")) return { body, applied: false, error: "not-image" };
+    if (ct === "image/gif" || ct === "image/svg+xml") return { body, applied: false, error: "unsupported" };
 
     const outFormat = sharpFormatFromContentType(contentType);
-    if (!outFormat) return body;
+    if (!outFormat) return { body, applied: false, error: "unsupported-format" };
 
     try {
         const sharp = (await import("sharp")).default;
@@ -92,7 +93,7 @@ async function maybeWatermarkImage(
         const meta = await img.metadata();
         const width = meta.width;
         const height = meta.height;
-        if (!width || !height) return body;
+        if (!width || !height) return { body, applied: false, error: "no-dimensions" };
 
         const svg = buildWatermarkSvg(width, height, "AB Designer");
         const piped = img.composite([{ input: svg, top: 0, left: 0 }]);
@@ -105,9 +106,11 @@ async function maybeWatermarkImage(
                     : piped.png())
             .toBuffer();
 
-        return Uint8Array.from(out).buffer;
+        return { body: Uint8Array.from(out).buffer, applied: true };
     } catch {
-        return body;
+        // Keep downloads working even if watermarking fails, but surface it in logs/headers.
+        console.warn("[asset] watermark failed");
+        return { body, applied: false, error: "sharp-failed" };
     }
 }
 
@@ -302,15 +305,24 @@ export async function GET(req: Request) {
 
     // Images: optionally watermark (requires buffering).
     const upstreamBody = await upstream.arrayBuffer();
-    const finalBody = await maybeWatermarkImage(upstreamBody, contentType, watermark);
+    const wm = await maybeWatermarkImage(upstreamBody, contentType, watermark);
 
-    return new NextResponse(finalBody, {
+    const headers = new Headers();
+    headers.set("Content-Type", contentType);
+    headers.set(
+        "Content-Disposition",
+        `${dispositionType}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    );
+    // Avoid stale CDN/browser cache issues for watermarked assets.
+    headers.set("Cache-Control", watermark || inline ? "no-store" : "public, max-age=86400");
+    headers.set("X-Content-Type-Options", "nosniff");
+    if (watermark) {
+        headers.set("X-Asset-Watermark", wm.applied ? "applied" : "skipped");
+        if (!wm.applied && wm.error) headers.set("X-Asset-Watermark-Reason", wm.error);
+    }
+
+    return new NextResponse(wm.body, {
         status: 200,
-        headers: {
-            "Content-Type": contentType,
-            "Content-Disposition": `${dispositionType}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
-            "Cache-Control": inline ? "no-store" : "public, max-age=86400",
-            "X-Content-Type-Options": "nosniff",
-        },
+        headers,
     });
 }
