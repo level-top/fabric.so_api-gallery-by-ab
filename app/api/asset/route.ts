@@ -27,7 +27,9 @@ function sharpFormatFromContentType(contentType: string): "jpeg" | "png" | "webp
 function buildWatermarkSvg(width: number, height: number): Buffer {
     // NOTE: Avoid <text> in SVG: on Vercel/serverless the font stack can be missing,
     // resulting in the watermark rendering as small "□" boxes. Use a font-free vector mark.
-    const size = Math.max(52, Math.round(Math.min(width, height) * 0.22));
+    const minDim = Math.min(width, height);
+    // Keep it subtle: scale with image size, but clamp to avoid huge "badge" looking marks.
+    const size = Math.round(Math.max(56, Math.min(220, minDim * 0.14)));
     const x = Math.round(width / 2 - size / 2);
     const y = Math.round(height / 2 - size / 2);
     const scale = size / 64;
@@ -35,9 +37,8 @@ function buildWatermarkSvg(width: number, height: number): Buffer {
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <g transform="translate(${x} ${y}) rotate(-18 ${Math.round(size / 2)} ${Math.round(size / 2)}) scale(${scale})">
-    <rect x="6" y="6" width="52" height="52" rx="14" fill="#000000" fill-opacity="0.14"/>
-    <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="#FFFFFF" fill-opacity="0.26"/>
-    <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="none" stroke="#000000" stroke-opacity="0.18" stroke-width="2"/>
+        <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="#FFFFFF" fill-opacity="0.14"/>
+        <path d="M22 42V22h22v6H29v3h13v6H29v5h-7Z" fill="none" stroke="#000000" stroke-opacity="0.14" stroke-width="2.2"/>
   </g>
 </svg>`;
 
