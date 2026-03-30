@@ -275,6 +275,7 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .navLinkActive {
@@ -305,5 +306,17 @@
 
   .search {
     flex-basis: 100%;
+  }
+
+  /* Make Premium/Favourites fit on one line on mobile. */
+  .nav {
+    gap: 6px;
+  }
+
+  .navLink {
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 10px;
+    font-size: 12px;
   }
 }
