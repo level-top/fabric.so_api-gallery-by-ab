@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -15,6 +16,56 @@ import { NoSaveImage } from "@/app/components/NoSaveImage";
 type PageProps = {
   params: Promise<{ id: string }>;
 };
+
+async function loadResource(id: string): Promise<any | null> {
+  try {
+    return await fabricFetch<any>(`/v2/resources/${id}`, { method: "GET" });
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  if (!id) return {};
+
+  const resource = await loadResource(id);
+  const name = typeof resource?.name === "string" && resource.name.trim() ? resource.name.trim() : "Resource";
+  const caption =
+    typeof resource?.data?.caption === "string"
+      ? resource.data.caption
+      : typeof resource?.data?.description === "string"
+        ? resource.data.description
+        : typeof resource?.caption === "string"
+          ? resource.caption
+          : typeof resource?.description === "string"
+            ? resource.description
+            : "";
+  const desc = (caption ?? "").trim().slice(0, 180) || "Client gallery powered by DNL";
+
+  const thumb = resource ? pickImageUrl(resource) : null;
+  const ogImage = thumb
+    ? `/api/asset?${new URLSearchParams({ url: thumb, inline: "1" }).toString()}`
+    : "/logo.jpeg";
+
+  return {
+    title: name,
+    description: desc,
+    openGraph: {
+      title: name,
+      description: desc,
+      url: `/resource/${encodeURIComponent(id)}`,
+      images: [{ url: ogImage }],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: name,
+      description: desc,
+      images: [ogImage],
+    },
+  };
+}
 
 function getFabricApiHostFromEnv(): string {
   const baseUrl = (process.env.FABRIC_API_BASE_URL ?? "https://api.fabric.so").trim();
@@ -274,9 +325,8 @@ export default async function ResourceDetailPage({ params }: PageProps) {
   if (!id) notFound();
 
   try {
-    const resource = await fabricFetch<any>(`/v2/resources/${id}`, {
-      method: "GET",
-    });
+    const resource = await loadResource(id);
+    if (!resource) notFound();
 
     const kind = typeof resource?.kind === "string" ? resource.kind : null;
     const imageUrl = pickImageUrl(resource);

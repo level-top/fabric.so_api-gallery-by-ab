@@ -63,7 +63,8 @@ function buildMessage(args: {
     // Best-effort: include a link back to this resource.
     try {
         if (typeof window !== "undefined" && window.location?.origin) {
-            lines.push(`Link: ${window.location.origin}/resource/${args.resourceId}`);
+            // Put the URL on its own line so WhatsApp reliably auto-detects it for previews.
+            lines.push(`${window.location.origin}/resource/${args.resourceId}`);
         }
     } catch {
         // ignore
