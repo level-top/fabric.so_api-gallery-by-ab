@@ -743,11 +743,22 @@ function HomeInner() {
     if (!restoredRef.current) return;
     const y = initialCache?.scrollY ?? 0;
     // Wait a tick for layout to settle before restoring scroll.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+    let cancelled = false;
+    let raf1 = 0;
+    let raf2 = 0;
+
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (cancelled) return;
         window.scrollTo({ top: y, left: 0, behavior: "auto" });
       });
     });
+
+    return () => {
+      cancelled = true;
+      if (raf1) cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
   }, [initialCache?.scrollY]);
 
   useEffect(() => {
