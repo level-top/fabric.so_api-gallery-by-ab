@@ -2,6 +2,21 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+function wantsOgImage(searchParams: URLSearchParams): boolean {
+    const v = (searchParams.get("og") ?? "").trim().toLowerCase();
+    return v === "1" || v === "true" || v === "yes";
+}
+
+function parsePositiveInt(searchParams: URLSearchParams, key: string, min: number, max: number): number | null {
+    const raw = (searchParams.get(key) ?? "").trim();
+    if (!raw) return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+    const i = Math.round(n);
+    if (i < min || i > max) return null;
+    return i;
+}
+
 function wantsWatermark(searchParams: URLSearchParams): boolean {
     const v = (searchParams.get("wm") ?? "").trim().toLowerCase();
     if (!v) return false;
@@ -317,6 +332,8 @@ export async function GET(req: Request) {
     const filenameParam = (searchParams.get("filename") ?? "").trim();
     const watermark = wantsWatermark(searchParams);
     const inline = wantsInline(searchParams);
+    const og = wantsOgImage(searchParams);
+    const ogWidth = parsePositiveInt(searchParams, "w", 240, 2000);
     if (!url) return NextResponse.json({ error: "Missing url" }, { status: 400 });
 
     let target: URL;
@@ -387,7 +404,7 @@ export async function GET(req: Request) {
 
     const baseName = filenameParam || target.pathname.split("/").pop() || "asset";
     const filename = withBestExtension(baseName, contentType, target.pathname);
-    const dispositionType = inline ? "inline" : "attachment";
+    const dispositionType = inline || og ? "inline" : "attachment";
 
     // Important for playable video: stream + pass through Range/206 headers.
     if (ctLower.startsWith("video/")) {
@@ -419,8 +436,41 @@ export async function GET(req: Request) {
         });
     }
 
-    // Images: optionally watermark (requires buffering).
+    // Images: optionally watermark (requires buffering). For OG previews (og=1),
+    // re-encode as JPEG for better compatibility with social preview scrapers.
     const upstreamBody = await upstream.arrayBuffer();
+
+    if (og) {
+        try {
+            const sharp = (await import("sharp")).default;
+            let img = sharp(Buffer.from(upstreamBody), { failOn: "none" });
+            if (ogWidth) {
+                img = img.resize({ width: ogWidth, withoutEnlargement: true, fit: "inside" });
+            }
+            const out = await img
+                .jpeg({ quality: 82, mozjpeg: true })
+                .toBuffer();
+
+            const headers = new Headers();
+            headers.set("Content-Type", "image/jpeg");
+            headers.set(
+                "Content-Disposition",
+                `inline; filename="${sanitizeFilename(baseName)}.jpg"; filename*=UTF-8''${encodeURIComponent(
+                    `${sanitizeFilename(baseName)}.jpg`,
+                )}`,
+            );
+            headers.set("Cache-Control", "public, max-age=86400");
+            headers.set("X-Content-Type-Options", "nosniff");
+            headers.set("X-Asset-Og", "1");
+            if (ogWidth) headers.set("X-Asset-Og-Width", String(ogWidth));
+
+            return new NextResponse(Uint8Array.from(out), { status: 200, headers });
+        } catch {
+            // Fall through to normal pipeline if re-encoding fails.
+            console.warn("[asset] og image re-encode failed");
+        }
+    }
+
     const wm = await maybeWatermarkImage(upstreamBody, contentType, watermark);
 
     const headers = new Headers();

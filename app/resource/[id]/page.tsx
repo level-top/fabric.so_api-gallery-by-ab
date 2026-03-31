@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const thumb = resource ? pickImageUrl(resource) : null;
   const ogImage = thumb
-    ? `/api/asset?${new URLSearchParams({ url: thumb, inline: "1" }).toString()}`
+    ? `/api/asset?${new URLSearchParams({ url: thumb, inline: "1", og: "1", w: "1200" }).toString()}`
     : "/logo.jpeg";
 
   return {
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: name,
       description: desc,
       url: `/resource/${encodeURIComponent(id)}`,
-      images: [{ url: ogImage }],
+      images: [{ url: ogImage, width: 1200, height: 630 }],
       type: "website",
     },
     twitter: {
