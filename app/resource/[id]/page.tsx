@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { FabricApiError, fabricFetch } from "@/lib/fabric";
 
@@ -25,6 +26,23 @@ async function loadResource(id: string): Promise<any | null> {
   }
 }
 
+async function getRequestOrigin(): Promise<string> {
+  // Prefer explicit config if present.
+  const direct = (process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? "").trim();
+  if (direct) return direct.replace(/\/$/, "");
+
+  // Otherwise derive from the actual request host (important for custom domains).
+  const h = await headers();
+  const host = (h.get("x-forwarded-host") ?? h.get("host") ?? "")
+    .split(",")[0]
+    ?.trim();
+  const proto = (h.get("x-forwarded-proto") ?? "https")
+    .split(",")[0]
+    ?.trim();
+  if (!host) return "";
+  return `${proto}://${host}`;
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   if (!id) return {};
@@ -44,9 +62,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const desc = (caption ?? "").trim().slice(0, 180) || "Client gallery powered by DNL";
 
   const thumb = resource ? pickImageUrl(resource) : null;
-  const ogImage = thumb
+  const origin = await getRequestOrigin();
+  const pagePath = `/resource/${encodeURIComponent(id)}`;
+  const pageUrl = origin ? `${origin}${pagePath}` : pagePath;
+  const ogImagePath = thumb
     ? `/api/asset?${new URLSearchParams({ url: thumb, inline: "1", og: "1", w: "1200" }).toString()}`
     : "/logo.jpeg";
+  const ogImageUrl = origin ? `${origin}${ogImagePath}` : ogImagePath;
 
   return {
     title: name,
@@ -54,15 +76,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: name,
       description: desc,
-      url: `/resource/${encodeURIComponent(id)}`,
-      images: [{ url: ogImage, width: 1200, height: 630 }],
+      url: pageUrl,
+      images: [{ url: ogImageUrl, width: 1200, height: 630, type: "image/jpeg" }],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title: name,
       description: desc,
-      images: [ogImage],
+      images: [ogImageUrl],
     },
   };
 }

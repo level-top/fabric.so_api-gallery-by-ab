@@ -25,16 +25,6 @@ function getMetadataBase(): URL | undefined {
     }
   }
 
-  // Vercel provides VERCEL_URL as host (no protocol).
-  const vercel = (process.env.VERCEL_URL ?? "").trim();
-  if (vercel) {
-    try {
-      return new URL(`https://${vercel}`);
-    } catch {
-      // ignore
-    }
-  }
-
   return undefined;
 }
 
