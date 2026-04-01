@@ -12,8 +12,8 @@ import { FavoriteButton } from "@/app/components/FavoriteButton";
 import { ShareButton } from "@/app/components/ShareButton";
 import { DownloadButton } from "@/app/components/DownloadButton";
 import { SimilarItems } from "./SimilarItems";
-import { NoSaveImage } from "@/app/components/NoSaveImage";
 import { ScrollToTopOnMount } from "@/app/components/ScrollToTopOnMount";
+import { MediaCatalogSlider } from "@/app/components/MediaCatalogSlider";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -395,25 +395,23 @@ export default async function ResourceDetailPage({ params }: PageProps) {
         <ScrollToTopOnMount depsKey={id} />
         <main className={`${sharedStyles.main} ${styles.main}`}>
           <div className={styles.layout}>
-            <div className={styles.mediaCard}>
-              <div className={`${styles.centerWatermark} ${styles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
-              <div className={`${styles.centerWatermark} ${styles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
-              <div className={`${styles.centerWatermark} ${styles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
+            <div className={styles.mediaColumn}>
               {videoUrl ? (
-                <video
-                  className={styles.media}
-                  controls
-                  preload="metadata"
-                  poster={pickThumb(resource) ?? undefined}
-                >
-                  <source src={videoUrl} />
-                </video>
+                <div className={styles.mediaCard}>
+                  <div className={`${styles.centerWatermark} ${styles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
+                  <div className={`${styles.centerWatermark} ${styles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
+                  <div className={`${styles.centerWatermark} ${styles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
+                  <video
+                    className={styles.media}
+                    controls
+                    preload="metadata"
+                    poster={pickThumb(resource) ?? undefined}
+                  >
+                    <source src={videoUrl} />
+                  </video>
+                </div>
               ) : imageUrl ? (
-                <NoSaveImage
-                  className={styles.media}
-                  src={buildWatermarkedInlineProxyUrl(imageUrl, title)}
-                  alt={title}
-                />
+                <MediaCatalogSlider resourceId={id} title={title} imageUrl={imageUrl} />
               ) : (
                 <div className={sharedStyles.missing}>No preview</div>
               )}

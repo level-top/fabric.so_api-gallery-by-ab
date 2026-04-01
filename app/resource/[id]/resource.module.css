@@ -131,6 +131,88 @@
     }
 }
 
+.mediaColumn {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.sliderWrap {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.sliderStage {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.sliderPrev,
+.sliderNext {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 4;
+}
+
+.sliderPrev {
+    left: 10px;
+}
+
+.sliderNext {
+    right: 10px;
+}
+
+.sliderThumbRow {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    justify-content: center;
+    overflow: hidden;
+    padding-bottom: 2px;
+}
+
+.sliderThumbButton {
+    padding: 0;
+    cursor: pointer;
+}
+
+.sliderThumbButton:disabled {
+    cursor: not-allowed;
+}
+
+.sliderThumbActive {
+    border-color: rgba(127, 127, 127, 0.55);
+}
+
+@media (max-width: 600px) {
+    .sliderThumbRow {
+        gap: 6px;
+        padding-bottom: 0;
+    }
+
+    /* Fit all previews in a single line without scrolling. */
+    .sliderThumbButton.catalogItem {
+        width: 56px;
+        height: 56px;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 420px) {
+    .sliderThumbRow {
+        gap: 5px;
+    }
+
+    .sliderThumbButton.catalogItem {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+    }
+}
+
 .sidebar {
     min-width: 0;
 }
@@ -550,4 +632,53 @@
     margin: 0;
     font-size: 13px;
     opacity: 0.85;
+}
+
+.catalogSection {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.catalogRow {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.catalogItem {
+    flex: 0 0 auto;
+    width: 92px;
+    height: 92px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(127, 127, 127, 0.25);
+    background: rgba(127, 127, 127, 0.06);
+    color: inherit;
+    text-decoration: none;
+    display: block;
+}
+
+.catalogThumb {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    background: rgba(127, 127, 127, 0.10);
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.catalogMissing {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    opacity: 0.75;
 }
