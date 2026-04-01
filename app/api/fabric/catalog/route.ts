@@ -137,6 +137,38 @@ function scoreMatches(resources: any[], folderId: string) {
   };
 }
 
+function extractAnyId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const t = value.trim();
+  return t ? t : null;
+}
+
+function extractResourceId(resource: any): string | null {
+  return extractAnyId(resource?.id);
+}
+
+async function validateByFetchingDetails(resources: any[], folderId: string) {
+  // If the filter response omits parent info, validate by fetching a small sample
+  // via /v2/resources/:id (which usually includes parent/root fields).
+  const toCheck = resources
+    .map((r) => extractResourceId(r))
+    .filter((id): id is string => typeof id === "string" && !!id)
+    .slice(0, 3);
+
+  for (const id of toCheck) {
+    try {
+      const full = await fabricFetch<any>(`/v2/resources/${encodeURIComponent(id)}`, {
+        method: "GET",
+      });
+      if (resourceMatchesFolder(full, folderId)) return { ok: true, checked: toCheck.length, via: "resource" };
+    } catch {
+      // ignore
+    }
+  }
+
+  return { ok: false, checked: toCheck.length, via: "resource" };
+}
+
 async function tryFilter(body: any): Promise<any> {
   return await fabricFetch<any>("/v2/resources/filter", {
     method: "POST",
@@ -276,17 +308,41 @@ export async function POST(request: Request) {
 
         // Validate: ensure the response actually belongs to the requested folder.
         // Some APIs ignore unknown filter fields and return a default/global list.
-        // We validate against a sample and require a strong match (ideally all).
+        // We validate against a sample and require a strong match, but also support
+        // a fallback validation path when the filter response omits parent fields.
         const scored = scoreMatches(resources, folderId);
-        attemptDebug.push({ name: a.name, ok: true, total: resources.length, ...scored });
+        const parentIds = Array.from(
+          new Set(
+            scored.sampleParents
+              .map((p: any) => (typeof p?.id === "string" ? p.id.trim() : ""))
+              .filter(Boolean),
+          ),
+        );
 
         const strongEnough =
           scored.sampleCount > 0 &&
-          // Accept only if nearly everything in the sample matches.
           scored.sampleMatches >= Math.max(1, Math.floor(scored.sampleCount * 0.8));
 
-        if (!strongEnough) {
-          continue;
+        const reasonableEnough =
+          scored.sampleCount > 0 &&
+          // If the API included parent ids, this should mostly be one folder.
+          (parentIds.length === 0 || parentIds.length <= 2) &&
+          // And we should see at least one match.
+          scored.sampleMatches >= 1;
+
+        if (!strongEnough && !reasonableEnough) {
+          const fetched = await validateByFetchingDetails(resources, folderId);
+          attemptDebug.push({
+            name: a.name,
+            ok: true,
+            total: resources.length,
+            ...scored,
+            parentIds,
+            fallbackValidate: fetched,
+          });
+          if (!fetched.ok) continue;
+        } else {
+          attemptDebug.push({ name: a.name, ok: true, total: resources.length, ...scored, parentIds });
         }
 
         data = res;
