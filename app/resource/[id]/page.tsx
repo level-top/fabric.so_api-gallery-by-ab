@@ -13,6 +13,7 @@ import { ShareButton } from "@/app/components/ShareButton";
 import { DownloadButton } from "@/app/components/DownloadButton";
 import { SimilarItems } from "./SimilarItems";
 import { NoSaveImage } from "@/app/components/NoSaveImage";
+import { ScrollToTopOnMount } from "@/app/components/ScrollToTopOnMount";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -391,6 +392,7 @@ export default async function ResourceDetailPage({ params }: PageProps) {
 
     return (
       <div className={sharedStyles.page}>
+        <ScrollToTopOnMount depsKey={id} />
         <main className={`${sharedStyles.main} ${styles.main}`}>
           <div className={styles.layout}>
             <div className={styles.mediaCard}>
