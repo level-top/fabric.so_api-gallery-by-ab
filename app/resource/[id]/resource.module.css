@@ -149,6 +149,30 @@
     min-width: 0;
 }
 
+.sliderViewport {
+    width: 100%;
+    overflow: hidden;
+}
+
+.sliderTrack {
+    display: flex;
+    width: 100%;
+    transform: translateX(0%);
+    transition: transform 260ms ease;
+    will-change: transform;
+}
+
+.sliderSlide {
+    flex: 0 0 100%;
+    min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sliderTrack {
+        transition: none;
+    }
+}
+
 .sliderPrev,
 .sliderNext {
     position: absolute;

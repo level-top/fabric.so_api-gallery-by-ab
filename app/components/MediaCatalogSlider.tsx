@@ -162,9 +162,6 @@ export function MediaCatalogSlider(props: {
         if (prev) preloadSrc(buildWatermarkedInlineProxyUrl(prev.url, prev.name));
     }, [items, activeIndex, preloadSrc]);
 
-    const active = items[activeIndex] ?? items[0];
-    const displaySrc = buildWatermarkedInlineProxyUrl(active.url, active.name);
-
     const hasMultiple = items.length > 1;
 
     return (
@@ -199,7 +196,27 @@ export function MediaCatalogSlider(props: {
                         else goNext();
                     }}
                 >
-                    <NoSaveImage className={styles.media} src={displaySrc} alt={active.name ?? title} />
+                    <div className={styles.sliderViewport} aria-live="polite">
+                        <div
+                            className={styles.sliderTrack}
+                            style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+                        >
+                            {items.map((it, idx) => {
+                                const src = buildWatermarkedInlineProxyUrl(it.url, it.name);
+                                return (
+                                    <div key={it.id} className={styles.sliderSlide} aria-hidden={idx !== activeIndex}>
+                                        <NoSaveImage
+                                            className={styles.media}
+                                            src={src}
+                                            alt={it.name ?? title}
+                                            decoding="async"
+                                            loading={idx === activeIndex ? "eager" : "lazy"}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     {hasMultiple ? (
                         <>
