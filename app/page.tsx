@@ -16,6 +16,7 @@ type HomeCache = {
   listHasMore: boolean;
   activeSearchText: string;
   searchPage: number;
+  searchPageSize: number;
   searchHasMore: boolean;
   searchTotal: number | null;
   mode: "list" | "search";
@@ -31,6 +32,9 @@ const FAVORITES_KEY = "fabric-gallery:favorites:v1";
 const FAVORITES_EVENT = "fabric-gallery:favorites-changed";
 
 const LIST_PAGE_LIMIT = 12;
+
+const DEFAULT_HOME_KEYWORD = "trending";
+const DEFAULT_HOME_SEARCH_PAGE_SIZE = LIST_PAGE_LIMIT;
 
 const NAME_TAGS_KEY = "fabric-gallery:name-tags:v1";
 const NAME_TAGS_LIMIT = 40;
@@ -352,6 +356,7 @@ function HomeInner() {
   const [listHasMore, setListHasMore] = useState(() => initialCache?.listHasMore ?? false);
   const [activeSearchText, setActiveSearchText] = useState<string>(() => initialCache?.activeSearchText ?? "");
   const [searchPage, setSearchPage] = useState(() => initialCache?.searchPage ?? 1);
+  const [searchPageSize, setSearchPageSize] = useState(() => initialCache?.searchPageSize ?? 30);
   const [searchHasMore, setSearchHasMore] = useState(() => initialCache?.searchHasMore ?? false);
   const [searchTotal, setSearchTotal] = useState<number | null>(() => initialCache?.searchTotal ?? null);
   const [mode, setMode] = useState<"list" | "search">(() => initialCache?.mode ?? "list");
@@ -373,6 +378,7 @@ function HomeInner() {
     listHasMore: initialCache?.listHasMore ?? false,
     activeSearchText: initialCache?.activeSearchText ?? "",
     searchPage: initialCache?.searchPage ?? 1,
+    searchPageSize: initialCache?.searchPageSize ?? 30,
     searchHasMore: initialCache?.searchHasMore ?? false,
     searchTotal: initialCache?.searchTotal ?? null,
     mode: initialCache?.mode ?? "list",
@@ -550,6 +556,9 @@ function HomeInner() {
         return;
       }
 
+      const pageSize = 30;
+      setSearchPageSize(pageSize);
+
       setMode("search");
       setLoading(true);
       setStatus("Searching...");
@@ -562,7 +571,7 @@ function HomeInner() {
             text: term,
             mode: "hybrid",
             page: 1,
-            pageSize: 30,
+            pageSize,
           }),
         });
 
@@ -603,6 +612,52 @@ function HomeInner() {
     },
     [ingestNameTags],
   );
+
+  const loadTrendingHome = useCallback(async () => {
+    const term = DEFAULT_HOME_KEYWORD;
+    const pageSize = DEFAULT_HOME_SEARCH_PAGE_SIZE;
+
+    setMode("search");
+    setSearchPageSize(pageSize);
+    setLoading(true);
+    setStatus("Loading...");
+
+    try {
+      const response = await fetch("/api/fabric/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: term,
+          mode: "hybrid",
+          page: 1,
+          pageSize,
+        }),
+      });
+
+      const data = await readJsonResponse<SearchResponse & { error?: string }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Request failed");
+
+      const hits = (data.hits ?? []).filter(
+        (x): x is Resource => typeof x === "object" && x !== null && "id" in x,
+      );
+
+      if (!hits.length) {
+        throw new Error("No trending results.");
+      }
+
+      setItems(hits);
+      ingestNameTags(hits);
+      setNextCursor(null);
+      setListHasMore(false);
+      setActiveSearchText(term);
+      setSearchPage(1);
+      setSearchHasMore(Boolean(data.hasMore));
+      setSearchTotal(typeof data.total === "number" ? data.total : null);
+      setStatus("");
+    } finally {
+      setLoading(false);
+    }
+  }, [ingestNameTags]);
 
   useEffect(() => {
     const q = queryQ.trim();
@@ -648,6 +703,17 @@ function HomeInner() {
     }
   }, [ingestNameTags]);
 
+  const loadDefaultHome = useCallback(async () => {
+    // Prefer a curated/keyword home feed; fall back to the normal latest list.
+    try {
+      await loadTrendingHome();
+      return;
+    } catch {
+      // ignore
+    }
+    await loadFirstPage();
+  }, [loadFirstPage, loadTrendingHome]);
+
   const loadMore = useCallback(async () => {
     if (!canLoad || !nextCursor || loading) return;
     try {
@@ -685,8 +751,12 @@ function HomeInner() {
     // When leaving search mode (i.e. URL `?q` cleared), return to the default list.
     if (queryQ.trim()) return;
     if (favoritesOnly) return;
-    if (mode !== "list") void loadFirstPage();
-  }, [favoritesOnly, loadFirstPage, mode, queryQ]);
+    const isDefaultHomeSearch =
+      mode === "search" &&
+      activeSearchText.trim().toLowerCase() === DEFAULT_HOME_KEYWORD;
+    if (isDefaultHomeSearch) return;
+    void loadDefaultHome();
+  }, [activeSearchText, favoritesOnly, loadDefaultHome, mode, queryQ]);
 
   const loadMoreSearch = useCallback(async () => {
     const totalMoreAvailable =
@@ -705,7 +775,7 @@ function HomeInner() {
           text: activeSearchText,
           mode: "hybrid",
           page: nextPage,
-          pageSize: 30,
+          pageSize: searchPageSize,
         }),
       });
 
@@ -736,7 +806,7 @@ function HomeInner() {
     } finally {
       setLoading(false);
     }
-  }, [activeSearchText, ingestNameTags, items.length, loading, mode, searchHasMore, searchPage, searchTotal]);
+  }, [activeSearchText, ingestNameTags, items.length, loading, mode, searchHasMore, searchPage, searchPageSize, searchTotal]);
 
   useEffect(() => {
     // Restore scroll position when coming back from a detail page.
@@ -765,8 +835,8 @@ function HomeInner() {
     // Auto-load images on initial page open, unless restored from in-memory history.
     if (restoredRef.current) return;
     if (favoritesOnly) return;
-    void loadFirstPage();
-  }, [favoritesOnly, loadFirstPage]);
+    void loadDefaultHome();
+  }, [favoritesOnly, loadDefaultHome]);
 
   useEffect(() => {
     latestStateRef.current = {
@@ -777,6 +847,7 @@ function HomeInner() {
       listHasMore,
       activeSearchText,
       searchPage,
+      searchPageSize,
       searchHasMore,
       searchTotal,
       mode,
@@ -790,6 +861,7 @@ function HomeInner() {
     nextCursor,
     searchHasMore,
     searchPage,
+    searchPageSize,
     searchText,
     searchTotal,
     status,

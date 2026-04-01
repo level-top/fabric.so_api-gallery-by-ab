@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import styles from "../page.module.css";
+import { FavoriteButton } from "../components/FavoriteButton";
 
 type Resource = {
   id: string;
@@ -150,33 +151,44 @@ export default function PremiumPage() {
           {premiumImages.map((r) => {
             const src = pickThumb(r);
             return (
-              <Link key={r.id} className={styles.cardLink} href={`/resource/${r.id}`}>
+              <div key={r.id} className={styles.cardLink}>
                 <div className={styles.card}>
                   <div className={styles.media}>
-                    {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        className={styles.thumb}
-                        src={src}
-                        alt={r.name ?? r.id}
-                        loading="lazy"
-                        draggable={false}
-                        onContextMenu={(e) => e.preventDefault()}
-                        onDragStart={(e) => e.preventDefault()}
-                      />
-                    ) : (
-                      <div className={styles.missing}>No preview</div>
-                    )}
+                    <Link className={styles.mediaLink} href={`/resource/${r.id}`}>
+                      {src ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          className={styles.thumb}
+                          src={src}
+                          alt={r.name ?? r.id}
+                          loading="lazy"
+                          draggable={false}
+                          onContextMenu={(e) => e.preventDefault()}
+                          onDragStart={(e) => e.preventDefault()}
+                        />
+                      ) : (
+                        <div className={styles.missing}>No preview</div>
+                      )}
+                    </Link>
+
+                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
+                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
+                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
                   </div>
 
                   <div className={styles.caption}>
-                    <div className={styles.name} title={r.name ?? "(untitled)"}>
-                      {r.name ?? "(untitled)"}
+                    <div className={styles.captionTop}>
+                      <div className={styles.meta}>{r.kind ?? "resource"}</div>
+                      <FavoriteButton
+                        resourceId={r.id}
+                        className={`${styles.favoriteInline} ${styles.captionFav}`}
+                        label=""
+                        title="Add to favourites"
+                      />
                     </div>
-                    <div className={styles.meta}>{r.kind ?? "resource"}</div>
                   </div>
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>

@@ -108,8 +108,14 @@ export function ShareButton({
                 try {
                     await nav.share({ title: text, text, url });
                     return;
-                } catch {
-                    // fall through
+                } catch (err: unknown) {
+                    // If the user cancels the native share sheet, do nothing.
+                    const name =
+                        err && typeof err === "object" && "name" in err
+                            ? String((err as any).name)
+                            : "";
+                    if (name === "AbortError") return;
+                    // Otherwise fall through to our custom menu.
                 }
             }
 

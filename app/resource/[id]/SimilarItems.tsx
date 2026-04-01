@@ -104,11 +104,12 @@ export function SimilarItems({ resourceId, pageSize = 24 }: Props) {
                 <div className={`${sharedStyles.grid} ${styles.similarGrid}`}>
                     {items.map((r) => {
                         const src = pickThumb(r);
+                        const isVideo = (r?.kind ?? "").toLowerCase() === "video";
                         return (
                             <div key={r.id} className={sharedStyles.cardLink}>
                                 <div className={sharedStyles.card}>
-                                    <Link className={sharedStyles.mediaLink} href={`/resource/${r.id}`}>
-                                        <div className={sharedStyles.media}>
+                                    <div className={sharedStyles.media}>
+                                        <Link className={sharedStyles.mediaLink} href={`/resource/${r.id}`}>
                                             {src ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img
@@ -123,23 +124,29 @@ export function SimilarItems({ resourceId, pageSize = 24 }: Props) {
                                             ) : (
                                                 <div className={sharedStyles.missing}>No preview</div>
                                             )}
+                                        </Link>
 
-                                            <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
-                                            <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
-                                            <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
+                                        <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
+                                        <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
+                                        <div className={`${sharedStyles.centerWatermark} ${sharedStyles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
 
+                                        {isVideo ? (
+                                            <div className={sharedStyles.playOverlay} aria-hidden="true">
+                                                <div className={sharedStyles.playBadge}>▶</div>
+                                            </div>
+                                        ) : null}
+                                    </div>
+
+                                    <div className={sharedStyles.caption}>
+                                        <div className={sharedStyles.captionTop}>
+                                            <div className={sharedStyles.meta}>{r?.kind ?? "resource"}</div>
                                             <FavoriteButton
                                                 resourceId={r.id}
-                                                className={sharedStyles.favoriteBadge}
+                                                className={`${sharedStyles.favoriteInline} ${sharedStyles.captionFav}`}
                                                 label=""
                                                 title="Add to favourites"
                                             />
                                         </div>
-                                    </Link>
-
-                                    <div className={sharedStyles.caption}>
-                                        <div className={sharedStyles.captionTop} />
-                                        <div className={sharedStyles.meta}>{r?.kind ?? "resource"}</div>
                                     </div>
                                 </div>
                             </div>
