@@ -716,6 +716,8 @@ function HomeInner() {
 
   const loadMore = useCallback(async () => {
     if (!canLoad || !nextCursor || loading) return;
+    setLoading(true);
+    setStatus("Loading more items...");
     try {
       const response = await fetch("/api/fabric/resources", {
         method: "POST",
@@ -911,6 +913,13 @@ function HomeInner() {
     return () => observer.disconnect();
   }, [favoritesOnly, items.length, listHasMore, loadMore, loadMoreSearch, loading, mode, nextCursor, searchHasMore, searchTotal]);
 
+  const canLoadMoreInCurrentMode =
+    !favoritesOnly &&
+    ((mode === "list" && listHasMore && Boolean(nextCursor)) ||
+      (mode === "search" &&
+        (searchHasMore ||
+          (typeof searchTotal === "number" && items.length < searchTotal))));
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
@@ -1007,40 +1016,17 @@ function HomeInner() {
           })}
         </div>
 
-        {!favoritesOnly && mode === "list" && listHasMore && nextCursor ? (
-          <button
-            className={styles.loadMore}
-            onClick={loadMore}
-            disabled={loading}
-            type="button"
-          >
-            Load more
-          </button>
+        {canLoadMoreInCurrentMode && loading ? (
+          <div className={styles.infiniteLoaderWrap} aria-label="Loading more">
+            <div className={styles.infiniteLoader} aria-hidden="true">
+              <span className={styles.loaderDot} />
+              <span className={styles.loaderDot} />
+              <span className={styles.loaderDot} />
+            </div>
+          </div>
         ) : null}
 
-        {!favoritesOnly && mode === "search" && searchHasMore ? (
-          <button
-            className={styles.loadMore}
-            onClick={loadMoreSearch}
-            disabled={loading}
-            type="button"
-          >
-            Load more
-          </button>
-        ) : null}
-
-        {!favoritesOnly && mode === "search" && !searchHasMore && typeof searchTotal === "number" && items.length < searchTotal ? (
-          <button
-            className={styles.loadMore}
-            onClick={loadMoreSearch}
-            disabled={loading}
-            type="button"
-          >
-            Load more
-          </button>
-        ) : null}
-
-        <div ref={sentinelRef} />
+        <div ref={sentinelRef} className={styles.sentinel} />
       </main>
     </div>
   );

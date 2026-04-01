@@ -689,6 +689,63 @@
   cursor: pointer;
 }
 
+.infiniteLoaderWrap {
+  margin: 14px 0 0;
+  display: flex;
+  justify-content: center;
+}
+
+.infiniteLoader {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.22);
+  background: rgba(127, 127, 127, 0.06);
+}
+
+.loaderDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.65);
+  animation: loaderDotPulse 950ms ease-in-out infinite;
+}
+
+.loaderDot:nth-child(2) {
+  animation-delay: 120ms;
+  opacity: 0.75;
+}
+
+.loaderDot:nth-child(3) {
+  animation-delay: 240ms;
+  opacity: 0.55;
+}
+
+@keyframes loaderDotPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loaderDot {
+    animation: none;
+  }
+}
+
+.sentinel {
+  height: 1px;
+}
+
 @media (max-width: 600px) {
   .page {
     padding: 16px;
