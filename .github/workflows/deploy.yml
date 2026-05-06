@@ -20,8 +20,6 @@ jobs:
           host: 2.24.216.67
           username: deploy
           key: ${{ secrets.SSH_KEY }}
-          debug: true
-          capture_stdout: true
           script: |
             set -e
             set -x
