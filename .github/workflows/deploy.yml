@@ -52,8 +52,11 @@ jobs:
             (npm ci || npm install) || fail "npm install failed"
             npm run build || fail "npm run build failed"
 
-            if command -v pm2 >/dev/null 2>&1; then
-              pm2 restart nextjs-app || pm2 start npm --name nextjs-app -- start || fail "pm2 start/restart failed"
-            else
-              fail "pm2 is not installed or not in PATH"
+            if ! command -v pm2 >/dev/null 2>&1; then
+              export NPM_CONFIG_PREFIX="$HOME/.npm-global"
+              export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+              npm install -g pm2 || fail "pm2 install failed"
             fi
+
+            pm2 -v || fail "pm2 is still not available after install"
+            pm2 restart nextjs-app || pm2 start npm --name nextjs-app -- start || fail "pm2 start/restart failed"
