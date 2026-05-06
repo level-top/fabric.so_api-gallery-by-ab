@@ -244,6 +244,8 @@ type Resource = {
   kind?: string | null;
   createdAt?: string | null;
   created_at?: string | null;
+  width?: number | null;
+  height?: number | null;
   thumbnail?: {
     sm?: string | null;
     md?: string | null;
@@ -251,7 +253,7 @@ type Resource = {
     xl?: string | null;
     original?: string | null;
   } | null;
-  cover?: { url?: string | null } | null;
+  cover?: { url?: string | null; width?: number | null; height?: number | null } | null;
 };
 
 type ResourcesFilterResponse = {
@@ -276,6 +278,23 @@ function pickThumb(r: Resource): string | null {
     r.thumbnail?.original ??
     null
   );
+}
+
+function pickIntrinsicSize(
+  r: Resource,
+): { width: number; height: number } | null {
+  const widthRaw = r.cover?.width ?? r.width;
+  const heightRaw = r.cover?.height ?? r.height;
+
+  if (typeof widthRaw !== "number" || typeof heightRaw !== "number") return null;
+  if (!Number.isFinite(widthRaw) || !Number.isFinite(heightRaw)) return null;
+  if (widthRaw <= 0 || heightRaw <= 0) return null;
+
+  const width = Math.round(widthRaw);
+  const height = Math.round(heightRaw);
+  if (width <= 0 || height <= 0) return null;
+
+  return { width, height };
 }
 
 function loadFavoriteIds(): string[] {
@@ -964,6 +983,7 @@ function HomeInner() {
         <div className={styles.grid}>
           {displayedItems.map((r) => {
             const src = pickThumb(r);
+            const intrinsic = pickIntrinsicSize(r);
             const isVideo = (r.kind ?? "").toLowerCase() === "video";
             return (
               <div key={r.id} className={styles.cardLink}>
@@ -978,6 +998,7 @@ function HomeInner() {
                           src={src}
                           alt={r.name ?? r.id}
                           loading="lazy"
+                          {...(intrinsic ? { width: intrinsic.width, height: intrinsic.height } : {})}
                           draggable={false}
                           onContextMenu={(e) => e.preventDefault()}
                           onDragStart={(e) => e.preventDefault()}

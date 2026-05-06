@@ -1,0 +1,30 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 2.24.216.67
+          username: deploy
+          key: ${{ secrets.SSH_KEY }}
+          script_stop: true
+          script: |
+            cd /var/www/fabric.so_api-gallery-by-ab
+            git fetch --prune
+            git reset --hard origin/main
+            npm ci
+            npm run build
+            pm2 restart nextjs-app
