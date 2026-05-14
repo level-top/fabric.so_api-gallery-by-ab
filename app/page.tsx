@@ -33,9 +33,6 @@ const FAVORITES_EVENT = "fabric-gallery:favorites-changed";
 
 const LIST_PAGE_LIMIT = 12;
 
-const DEFAULT_HOME_KEYWORD = "trending";
-const DEFAULT_HOME_SEARCH_PAGE_SIZE = LIST_PAGE_LIMIT;
-
 const NAME_TAGS_KEY = "fabric-gallery:name-tags:v1";
 const NAME_TAGS_LIMIT = 40;
 
@@ -269,6 +266,15 @@ type SearchResponse = {
   hasMore?: boolean;
 };
 
+type HomeFeedResponse = {
+  resources?: Resource[];
+  nextCursor?: string | null;
+  hasMore?: boolean;
+  refreshedAt?: string;
+  stale?: boolean;
+  error?: string;
+};
+
 function pickThumb(r: Resource): string | null {
   return (
     r.thumbnail?.lg ??
@@ -295,6 +301,21 @@ function pickIntrinsicSize(
   if (width <= 0 || height <= 0) return null;
 
   return { width, height };
+}
+
+function getMasonryColumnCount(viewportWidth: number): number {
+  if (viewportWidth <= 720) return 2;
+  if (viewportWidth <= 980) return 3;
+  return 4;
+}
+
+function estimateCardHeight(r: Resource): number {
+  const intrinsic = pickIntrinsicSize(r);
+  if (intrinsic) {
+    return intrinsic.height / intrinsic.width + 0.22;
+  }
+
+  return 1.42;
 }
 
 function loadFavoriteIds(): string[] {
@@ -385,6 +406,7 @@ function HomeInner() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [favoriteItems, setFavoriteItems] = useState<Resource[]>([]);
   const [favoriteStatus, setFavoriteStatus] = useState<string>("");
+  const [columnCount, setColumnCount] = useState(4);
   const favoriteRequestRef = useRef(0);
   const [nameTags, setNameTags] = useState<Record<string, number>>({});
   const processedIdsRef = useRef<Set<string>>(new Set());
@@ -538,6 +560,26 @@ function HomeInner() {
 
   const displayedItems = favoritesOnly ? favoriteItems : items;
 
+  const columnItems = useMemo(() => {
+    const safeColumnCount = Math.max(1, columnCount);
+    const columns = Array.from({ length: safeColumnCount }, () => [] as Resource[]);
+    const heights = Array.from({ length: safeColumnCount }, () => 0);
+
+    for (const resource of displayedItems) {
+      let targetColumn = 0;
+      for (let index = 1; index < heights.length; index += 1) {
+        if (heights[index] < heights[targetColumn]) {
+          targetColumn = index;
+        }
+      }
+
+      columns[targetColumn].push(resource);
+      heights[targetColumn] += estimateCardHeight(resource);
+    }
+
+    return columns;
+  }, [columnCount, displayedItems]);
+
   const ingestNameTags = useCallback((resources: Resource[]) => {
     if (!resources.length) return;
 
@@ -632,52 +674,6 @@ function HomeInner() {
     [ingestNameTags],
   );
 
-  const loadTrendingHome = useCallback(async () => {
-    const term = DEFAULT_HOME_KEYWORD;
-    const pageSize = DEFAULT_HOME_SEARCH_PAGE_SIZE;
-
-    setMode("search");
-    setSearchPageSize(pageSize);
-    setLoading(true);
-    setStatus("Loading...");
-
-    try {
-      const response = await fetch("/api/fabric/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: term,
-          mode: "hybrid",
-          page: 1,
-          pageSize,
-        }),
-      });
-
-      const data = await readJsonResponse<SearchResponse & { error?: string }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Request failed");
-
-      const hits = (data.hits ?? []).filter(
-        (x): x is Resource => typeof x === "object" && x !== null && "id" in x,
-      );
-
-      if (!hits.length) {
-        throw new Error("No trending results.");
-      }
-
-      setItems(hits);
-      ingestNameTags(hits);
-      setNextCursor(null);
-      setListHasMore(false);
-      setActiveSearchText(term);
-      setSearchPage(1);
-      setSearchHasMore(Boolean(data.hasMore));
-      setSearchTotal(typeof data.total === "number" ? data.total : null);
-      setStatus("");
-    } finally {
-      setLoading(false);
-    }
-  }, [ingestNameTags]);
-
   useEffect(() => {
     const q = queryQ.trim();
     if (!q) return;
@@ -709,6 +705,8 @@ function HomeInner() {
       const normalizedNextCursor = (data.nextCursor ?? "").trim();
       setNextCursor(normalizedNextCursor ? normalizedNextCursor : null);
       setListHasMore(Boolean(data.hasMore));
+      setActiveSearchText("");
+      setSearchPage(1);
       setSearchHasMore(false);
       setSearchTotal(null);
       setStatus(
@@ -723,15 +721,36 @@ function HomeInner() {
   }, [ingestNameTags]);
 
   const loadDefaultHome = useCallback(async () => {
-    // Prefer a curated/keyword home feed; fall back to the normal latest list.
+    setMode("list");
+    setLoading(true);
+    setStatus("Loading items...");
+
     try {
-      await loadTrendingHome();
+      const response = await fetch("/api/home-feed", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const data = await readJsonResponse<HomeFeedResponse>(response);
+      if (!response.ok) throw new Error(data.error ?? "Request failed");
+
+      const resources = data.resources ?? [];
+      setItems(resources);
+      ingestNameTags(resources);
+      setNextCursor((data.nextCursor ?? "").trim() || null);
+      setListHasMore(Boolean(data.hasMore));
+      setActiveSearchText("");
+      setSearchPage(1);
+      setSearchHasMore(false);
+      setSearchTotal(null);
+      setStatus("");
       return;
     } catch {
-      // ignore
+      // Fall back to a direct recent-uploads fetch if the cached payload is unavailable.
     }
+
     await loadFirstPage();
-  }, [loadFirstPage, loadTrendingHome]);
+  }, [ingestNameTags, loadFirstPage]);
 
   const loadMore = useCallback(async () => {
     if (!canLoad || !nextCursor || loading) return;
@@ -772,12 +791,10 @@ function HomeInner() {
     // When leaving search mode (i.e. URL `?q` cleared), return to the default list.
     if (queryQ.trim()) return;
     if (favoritesOnly) return;
-    const isDefaultHomeSearch =
-      mode === "search" &&
-      activeSearchText.trim().toLowerCase() === DEFAULT_HOME_KEYWORD;
-    if (isDefaultHomeSearch) return;
+    const alreadyShowingDefaultList = mode === "list" && items.length > 0 && !activeSearchText.trim();
+    if (alreadyShowingDefaultList) return;
     void loadDefaultHome();
-  }, [activeSearchText, favoritesOnly, loadDefaultHome, mode, queryQ]);
+  }, [activeSearchText, favoritesOnly, items.length, loadDefaultHome, mode, queryQ]);
 
   const loadMoreSearch = useCallback(async () => {
     const totalMoreAvailable =
@@ -828,6 +845,19 @@ function HomeInner() {
       setLoading(false);
     }
   }, [activeSearchText, ingestNameTags, items.length, loading, mode, searchHasMore, searchPage, searchPageSize, searchTotal]);
+
+  useEffect(() => {
+    const updateColumnCount = () => {
+      setColumnCount(getMasonryColumnCount(window.innerWidth));
+    };
+
+    updateColumnCount();
+    window.addEventListener("resize", updateColumnCount, { passive: true });
+
+    return () => {
+      window.removeEventListener("resize", updateColumnCount);
+    };
+  }, []);
 
   useEffect(() => {
     // Restore scroll position when coming back from a detail page.
@@ -980,61 +1010,68 @@ function HomeInner() {
           <p className={styles.status}>{status}</p>
         ) : null}
 
-        <div className={styles.grid}>
-          {displayedItems.map((r) => {
-            const src = pickThumb(r);
-            const intrinsic = pickIntrinsicSize(r);
-            const isVideo = (r.kind ?? "").toLowerCase() === "video";
-            return (
-              <div key={r.id} className={styles.cardLink}>
-                <div className={styles.card}>
-                  <div className={styles.media}>
-                    <Link className={styles.mediaLink} href={`/resource/${r.id}`}>
-                      {src ? (
-                        // Using <img> to avoid Next Image remote domain config.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          className={styles.thumb}
-                          src={src}
-                          alt={r.name ?? r.id}
-                          loading="lazy"
-                          {...(intrinsic ? { width: intrinsic.width, height: intrinsic.height } : {})}
-                          draggable={false}
-                          onContextMenu={(e) => e.preventDefault()}
-                          onDragStart={(e) => e.preventDefault()}
-                        />
-                      ) : (
-                        <div className={styles.missing}>No preview</div>
-                      )}
-                    </Link>
+        <div
+          className={styles.grid}
+          style={{ ["--grid-columns" as string]: String(columnCount) }}
+        >
+          {columnItems.map((column, columnIndex) => (
+            <div key={`column-${columnIndex}`} className={styles.column}>
+              {column.map((r) => {
+                const src = pickThumb(r);
+                const intrinsic = pickIntrinsicSize(r);
+                const isVideo = (r.kind ?? "").toLowerCase() === "video";
+                return (
+                  <div key={r.id} className={styles.cardLink}>
+                    <div className={styles.card}>
+                      <div className={styles.media}>
+                        <Link className={styles.mediaLink} href={`/resource/${r.id}`}>
+                          {src ? (
+                            // Using <img> to avoid Next Image remote domain config.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              className={styles.thumb}
+                              src={src}
+                              alt={r.name ?? r.id}
+                              loading="lazy"
+                              {...(intrinsic ? { width: intrinsic.width, height: intrinsic.height } : {})}
+                              draggable={false}
+                              onContextMenu={(e) => e.preventDefault()}
+                              onDragStart={(e) => e.preventDefault()}
+                            />
+                          ) : (
+                            <div className={styles.missing}>No preview</div>
+                          )}
+                        </Link>
 
-                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
-                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
-                    <div className={`${styles.centerWatermark} ${styles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
+                        <div className={`${styles.centerWatermark} ${styles.centerWatermarkTop}`} aria-hidden="true">AB Designer</div>
+                        <div className={`${styles.centerWatermark} ${styles.centerWatermarkMiddle}`} aria-hidden="true">AB Designer</div>
+                        <div className={`${styles.centerWatermark} ${styles.centerWatermarkBottom}`} aria-hidden="true">AB Designer</div>
 
-                    {isVideo ? (
-                      <div className={styles.playOverlay} aria-hidden="true">
-                        <div className={styles.playBadge}>▶</div>
+                        {isVideo ? (
+                          <div className={styles.playOverlay} aria-hidden="true">
+                            <div className={styles.playBadge}>▶</div>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
 
-                  <div className={styles.caption}>
-                    <div className={styles.captionTop}>
-                      <div className={styles.meta}>{r.kind ?? "resource"}</div>
-                      <FavoriteButton
-                        resourceId={r.id}
-                        className={`${styles.favoriteInline} ${styles.captionFav}`}
-                        label=""
-                        title="Add to favourites"
-                      />
+                      <div className={styles.caption}>
+                        <div className={styles.captionTop}>
+                          <div className={styles.meta}>{r.kind ?? "resource"}</div>
+                          <FavoriteButton
+                            resourceId={r.id}
+                            className={`${styles.favoriteInline} ${styles.captionFav}`}
+                            label=""
+                            title="Add to favourites"
+                          />
 
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {canLoadMoreInCurrentMode && loading ? (

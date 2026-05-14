@@ -53,3 +53,21 @@ jobs:
 
             command -v pm2 >/dev/null 2>&1 || fail "pm2 is still not available after install"
             pm2 restart nextjs-app || pm2 start npm --name nextjs-app -- start || fail "pm2 start/restart failed"
+
+            if command -v curl >/dev/null 2>&1; then
+              PREWARM_URL="http://127.0.0.1:3000/api/cron/prewarm"
+              PREWARM_OK=0
+              for attempt in 1 2 3 4 5; do
+                if curl --fail --show-error --silent "$PREWARM_URL" >/dev/null; then
+                  PREWARM_OK=1
+                  break
+                fi
+                sleep 2
+              done
+
+              if [ "$PREWARM_OK" -ne 1 ]; then
+                echo "::warning::Post-deploy home-feed prewarm failed on $PREWARM_URL"
+              fi
+            else
+              echo "::warning::curl is not available; skipping post-deploy home-feed prewarm"
+            fi

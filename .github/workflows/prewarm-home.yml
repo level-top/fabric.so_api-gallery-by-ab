@@ -1,0 +1,36 @@
+name: Prewarm Home Feed
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+
+jobs:
+  prewarm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prewarm via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 2.24.216.67
+          username: deploy
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+
+            command -v curl >/dev/null 2>&1 || {
+              echo "curl is not available on server"
+              exit 1
+            }
+
+            URL="http://127.0.0.1:3000/api/cron/prewarm"
+            for attempt in 1 2 3 4 5; do
+              if curl --fail --show-error --silent "$URL"; then
+                exit 0
+              fi
+              sleep 2
+            done
+
+            echo "Unable to prewarm home feed via $URL"
+            exit 1

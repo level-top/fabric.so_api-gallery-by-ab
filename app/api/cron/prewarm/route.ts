@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
+import { getCachedHomeFeed, getHomeFeedTtlMs } from "@/lib/homeFeed";
 
-const DEFAULT_LIMIT = 12;
+export const runtime = "nodejs";
+
 const TIMEOUT_MS = 20_000;
 
 export async function GET(request: Request) {
@@ -15,45 +16,40 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const origin = url.origin;
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     const started = Date.now();
     try {
-        const resp = await fetch(`${origin}/api/fabric/resources`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ limit: DEFAULT_LIMIT }),
-            signal: controller.signal,
+        const refreshPromise = getCachedHomeFeed({ forceRefresh: true, allowStale: false });
+        const abortPromise = new Promise<never>((_, reject) => {
+            controller.signal.addEventListener(
+                "abort",
+                () => reject(new Error(`Timeout after ${TIMEOUT_MS}ms`)),
+                { once: true },
+            );
         });
 
+        const payload = await Promise.race([refreshPromise, abortPromise]);
+
         const ms = Date.now() - started;
 
-        if (!resp.ok) {
-            const text = await resp.text().catch(() => "");
-            return NextResponse.json(
-                {
-                    ok: false,
-                    warmed: { resources: false },
-                    status: resp.status,
-                    ms,
-                    detail: text.slice(0, 800),
-                },
-                { status: 502 },
-            );
-        }
-
-        return NextResponse.json({ ok: true, warmed: { resources: true }, ms });
+        return NextResponse.json({
+            ok: true,
+            warmed: { homeFeed: true },
+            stale: payload.stale,
+            resources: payload.resources.length,
+            ttlMs: getHomeFeedTtlMs(),
+            ms,
+            refreshedAt: payload.refreshedAt,
+        });
     } catch (e) {
         const ms = Date.now() - started;
-        const aborted = e instanceof Error && e.name === "AbortError";
+        const aborted = e instanceof Error && e.message.includes("Timeout after");
         return NextResponse.json(
             {
                 ok: false,
-                warmed: { resources: false },
+                warmed: { homeFeed: false },
                 ms,
                 error: aborted ? `Timeout after ${TIMEOUT_MS}ms` : e instanceof Error ? e.message : "Unknown error",
             },
