@@ -411,6 +411,13 @@
     column-gap: 8px;
 }
 
+.similarCardLink {
+    display: inline-block;
+    width: 100%;
+    margin: 0 0 8px;
+    break-inside: avoid;
+}
+
 @media (max-width: 980px) {
     .similarGrid {
         column-count: 3;

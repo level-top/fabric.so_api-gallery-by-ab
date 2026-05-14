@@ -358,9 +358,29 @@ async function fetchFavoriteResource(id: string): Promise<Resource | null> {
 
 export default function Home() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<HomeFallback />}>
       <HomeInner />
     </Suspense>
+  );
+}
+
+function HomeFallback() {
+  return (
+    <div className={styles.page}>
+      <main className={styles.main}>
+        <section className={styles.hero} aria-label="Loading">
+          <div className={styles.heroInner}>
+            <div className={styles.heroCopy}>
+              <div className={styles.heroKicker}>AB Designer</div>
+              <h1 className={styles.heroTitle}>Loading gallery...</h1>
+              <p className={styles.heroText}>Preparing recent uploads and search tools.</p>
+            </div>
+          </div>
+        </section>
+
+        <div className={styles.status}>Loading items...</div>
+      </main>
+    </div>
   );
 }
 
@@ -747,6 +767,8 @@ function HomeInner() {
       return;
     } catch {
       // Fall back to a direct recent-uploads fetch if the cached payload is unavailable.
+    } finally {
+      setLoading(false);
     }
 
     await loadFirstPage();
@@ -1011,11 +1033,11 @@ function HomeInner() {
         ) : null}
 
         <div
-          className={styles.grid}
+          className={styles.homeGrid}
           style={{ ["--grid-columns" as string]: String(columnCount) }}
         >
           {columnItems.map((column, columnIndex) => (
-            <div key={`column-${columnIndex}`} className={styles.column}>
+            <div key={`column-${columnIndex}`} className={styles.homeColumn}>
               {column.map((r) => {
                 const src = pickThumb(r);
                 const intrinsic = pickIntrinsicSize(r);

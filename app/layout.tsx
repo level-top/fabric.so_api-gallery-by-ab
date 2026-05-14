@@ -45,6 +45,36 @@ export const metadata: Metadata = {
   },
 };
 
+function HeaderFallback() {
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        borderBottom: "1px solid rgba(127, 127, 127, 0.18)",
+        background: "rgba(10, 10, 10, 0.92)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          padding: "14px 24px",
+          fontFamily: "var(--font-geist-sans)",
+          fontSize: 14,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "rgba(237, 237, 237, 0.78)",
+        }}
+      >
+        AB Designer
+      </div>
+    </div>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -53,7 +83,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Suspense fallback={null}>
+        <Suspense fallback={<HeaderFallback />}>
           <HeaderNav />
         </Suspense>
         {children}

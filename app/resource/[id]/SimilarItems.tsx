@@ -101,12 +101,12 @@ export function SimilarItems({ resourceId, pageSize = 24 }: Props) {
             </div>
 
             {!loading && !error && items.length ? (
-                <div className={`${sharedStyles.grid} ${styles.similarGrid}`}>
+                <div className={styles.similarGrid}>
                     {items.map((r) => {
                         const src = pickThumb(r);
                         const isVideo = (r?.kind ?? "").toLowerCase() === "video";
                         return (
-                            <div key={r.id} className={sharedStyles.cardLink}>
+                            <div key={r.id} className={`${sharedStyles.cardLink} ${styles.similarCardLink}`}>
                                 <div className={sharedStyles.card}>
                                     <div className={sharedStyles.media}>
                                         <Link className={sharedStyles.mediaLink} href={`/resource/${r.id}`}>
