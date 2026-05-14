@@ -650,11 +650,11 @@
 
 @media (max-width: 480px) {
   .grid {
-    column-count: 1;
+    column-count: 2;
   }
 
   .homeGrid {
-    --grid-columns: 1;
+    --grid-columns: 2;
   }
 }
 
