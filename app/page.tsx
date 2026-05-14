@@ -304,6 +304,7 @@ function pickIntrinsicSize(
 }
 
 function getMasonryColumnCount(viewportWidth: number): number {
+  if (viewportWidth <= 480) return 1;
   if (viewportWidth <= 720) return 2;
   if (viewportWidth <= 980) return 3;
   return 4;
